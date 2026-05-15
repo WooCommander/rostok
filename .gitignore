@@ -1,0 +1,48 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+package-lock.json
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# FairPrice leftovers (not used in Rostok)
+src/modules/analytics/
+src/modules/birthdays/
+src/modules/catalog/
+src/modules/game/
+src/modules/notes/
+src/modules/prices/
+src/modules/receipts/
+src/modules/shopping-list/
+src/modules/settings/
+src/modules/profile/views/ActivityView.vue
+src/modules/profile/views/LeaderboardView.vue
+src/modules/profile/services/LeaderboardService.ts
+src/composables/usePriceFormat.ts
+src/app/services/app-service.ts
+src/views/HomeView.vue

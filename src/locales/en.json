@@ -1,0 +1,76 @@
+{
+  "nav": {
+    "home": "Home",
+    "search": "Search",
+    "favorites": "Favorites",
+    "profile": "Profile",
+    "catalog": "Catalog",
+    "stores": "Stores",
+    "leaderboard": "Leaderboard",
+    "shoppingList": "List",
+    "addPrice": "Price",
+    "menu": "Menu",
+    "tools": "Tools",
+    "dev": "Developer",
+    "designSystem": "Design System",
+    "changelog": "Changelog"
+  },
+  "auth": {
+    "guest": "Guest"
+  },
+  "theme": {
+    "light": "Light mode",
+    "dark": "Dark mode"
+  },
+  "lang": {
+    "switch": "Language"
+  },
+  "login": {
+    "title": "Login",
+    "registerTitle": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "submitLogin": "Login",
+    "submitRegister": "Create account",
+    "confirmPassword": "Confirm password",
+    "forgotPassword": "Forgot password?",
+    "sendResetLink": "Send link",
+    "backToLogin": "Back to login",
+    "setNewPassword": "New password",
+    "updatePassword": "Update password",
+    "noAccount": "No account?",
+    "create": "Create",
+    "haveAccount": "Already have an account?",
+    "enter": "Login",
+    "errors": {
+      "fillAll": "Fill all fields",
+      "shortPassword": "Password must be at least 6 characters",
+      "passwordMismatch": "Passwords do not match",
+      "loginFailed": "Login error",
+      "registerFailed": "Registration error",
+      "notConfirmed": "Email not confirmed. Check your inbox.",
+      "invalidCredentials": "Invalid email or password",
+      "resetFailed": "Password reset error"
+    },
+    "successRegister": "Registration successful! Check your email to confirm.",
+    "resetEmailSent": "Reset link sent to your email",
+    "passwordUpdated": "Password updated successfully"
+  },
+  "profile": {
+    "activityTitle": "Recent activity",
+    "viewAll": "View all",
+    "currencyTitle": "Display currency",
+    "ratesHint": "Rate to RUB",
+    "applyRates": "Apply rates",
+    "stats": {
+      "reputation": "Reputation",
+      "prices": "Prices added",
+      "favorites": "Favorites"
+    },
+    "moderation": {
+      "title": "Pending moderation",
+      "empty": "No items to moderate",
+      "pending": "Pending"
+    }
+  }
+}

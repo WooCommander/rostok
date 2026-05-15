@@ -1,0 +1,158 @@
+// --- Colors ---
+// Primary (Brand) - Forest Green
+$color-primary: #2D6A4F;
+$color-primary-variant: #1B4332;
+$color-on-primary: #ffffff;
+
+// Secondary (Accent) - Mint & Amber
+$color-secondary: #52B788;
+$color-accent-warm: #E9A020;
+
+// Backgrounds & Surfaces (Light)
+$color-background: #F4FAF6;
+$color-surface: #ffffff;
+$color-surface-translucent: rgba(255, 255, 255, 0.7);
+$color-surface-hover: #EAF5EE;
+
+// Status & Alerts
+$color-success: #52B788;
+$color-error: #E76F51;
+$color-warning: #E9A020;
+$color-info: #3b82f6;
+
+// Soil tones
+$color-soil: #8B5E3C;
+$color-soil-light: #F3EFE8;
+
+// Text / Content
+$color-text-primary: #1B2E24;
+$color-text-secondary: #5A7A67;
+$color-text-disabled: #B2C9BC;
+$color-text-tertiary: #7A9E8A;
+
+// Borders
+$color-border: #C0E0CF;
+
+// --- Typography ---
+$font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+$font-heading: 'Inter', sans-serif;
+
+$text-h1: 3rem;
+$text-h2: 2.5rem;
+$text-h3: 2rem;
+$text-h4: 1.75rem;
+$text-h5: 1.5rem;
+$text-h6: 1.25rem;
+$text-body-1: 1.125rem;
+$text-body-2: 1rem;
+$text-button: 1rem;
+$text-caption: 1rem;
+$text-overline: 1rem;
+
+// --- Spacing ---
+$spacing-xs: 0.5rem;
+$spacing-sm: 0.75rem;
+$spacing-md: 1.25rem;
+$spacing-lg: 2rem;
+$spacing-xl: 3rem;
+$spacing-2xl: 4rem;
+
+// --- Radii ---
+$radius-sm: 0.5rem;
+$radius-md: 0.75rem;
+$radius-lg: 1.25rem;
+$radius-pill: 62.5rem;
+
+// --- Shadows ---
+$shadow-sm: 0 0.0625rem 0.125rem 0 rgba(0, 0, 0, 0.05);
+$shadow-1: 0px 0.5rem 1rem -0.25rem rgba(27, 46, 36, 0.04);
+$shadow-2: 0px 0.75rem 2rem -0.5rem rgba(45, 106, 79, 0.15);
+$shadow-3: 0px 1rem 2.5rem -0.5rem rgba(45, 106, 79, 0.25);
+
+// --- Layout ---
+$layout-max-width: 75rem;
+
+// Dark Theme
+$dark-color-primary: #52B788;
+$dark-color-on-primary: #ffffff;
+$dark-color-background: #0D1F17;
+$dark-color-surface: #152A1E;
+$dark-color-surface-translucent: rgba(21, 42, 30, 0.8);
+$dark-color-surface-hover: #1E3828;
+$dark-color-text-primary: #E8F5EC;
+$dark-color-text-secondary: #7AAE8A;
+$dark-color-text-disabled: #3A5A45;
+$dark-color-text-tertiary: #5A8A6A;
+$dark-color-border: #1E3828;
+$dark-shadow-1: 0px 0.5rem 1rem -0.25rem rgba(0, 0, 0, 0.3);
+$dark-shadow-2: 0px 0.75rem 2rem -0.5rem rgba(0, 0, 0, 0.4);
+$dark-shadow-3: 0px 1rem 2.5rem -0.5rem rgba(0, 0, 0, 0.5);
+
+// Export to CSS Variables
+:root {
+  --color-primary: #{$color-primary};
+  --color-primary-variant: #{$color-primary-variant};
+  --color-on-primary: #{$color-on-primary};
+  --color-secondary: #{$color-secondary};
+  --color-accent-warm: #{$color-accent-warm};
+  --color-background: #{$color-background};
+  --color-surface: #{$color-surface};
+  --color-surface-translucent: #{$color-surface-translucent};
+  --color-surface-hover: #{$color-surface-hover};
+  --color-success: #{$color-success};
+  --color-error: #{$color-error};
+  --color-warning: #{$color-warning};
+  --color-info: #{$color-info};
+  --color-soil: #{$color-soil};
+  --color-soil-light: #{$color-soil-light};
+  --color-text-primary: #{$color-text-primary};
+  --color-text-secondary: #{$color-text-secondary};
+  --color-text-disabled: #{$color-text-disabled};
+  --color-text-tertiary: #{$color-text-tertiary};
+  --color-border: #{$color-border};
+  --font-family: #{$font-family};
+  --font-heading: #{$font-heading};
+  --text-h1: #{$text-h1};
+  --text-h2: #{$text-h2};
+  --text-h3: #{$text-h3};
+  --text-h4: #{$text-h4};
+  --text-h5: #{$text-h5};
+  --text-h6: #{$text-h6};
+  --text-body-1: #{$text-body-1};
+  --text-body-2: #{$text-body-2};
+  --text-button: #{$text-button};
+  --text-caption: #{$text-caption};
+  --text-overline: #{$text-overline};
+  --spacing-xs: #{$spacing-xs};
+  --spacing-sm: #{$spacing-sm};
+  --spacing-md: #{$spacing-md};
+  --spacing-lg: #{$spacing-lg};
+  --spacing-xl: #{$spacing-xl};
+  --spacing-2xl: #{$spacing-2xl};
+  --radius-sm: #{$radius-sm};
+  --radius-md: #{$radius-md};
+  --radius-lg: #{$radius-lg};
+  --radius-pill: #{$radius-pill};
+  --shadow-sm: #{$shadow-sm};
+  --shadow-1: #{$shadow-1};
+  --shadow-2: #{$shadow-2};
+  --shadow-3: #{$shadow-3};
+  --layout-max-width: #{$layout-max-width};
+}
+
+body.dark-theme {
+  --color-primary: #{$dark-color-primary};
+  --color-on-primary: #{$dark-color-on-primary};
+  --color-background: #{$dark-color-background};
+  --color-surface: #{$dark-color-surface};
+  --color-surface-translucent: #{$dark-color-surface-translucent};
+  --color-surface-hover: #{$dark-color-surface-hover};
+  --color-text-primary: #{$dark-color-text-primary};
+  --color-text-secondary: #{$dark-color-text-secondary};
+  --color-text-disabled: #{$dark-color-text-disabled};
+  --color-text-tertiary: #{$dark-color-text-tertiary};
+  --color-border: #{$dark-color-border};
+  --shadow-1: #{$dark-shadow-1};
+  --shadow-2: #{$dark-shadow-2};
+  --shadow-3: #{$dark-shadow-3};
+}
