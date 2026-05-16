@@ -24,7 +24,7 @@ onMounted(async () => {
 })
 
 function onConfirmUpdate() {
-  const url = updateMeta.value?.download_url || 'https://play.google.com/store/apps/details?id=com.rostok.app'
+  const url = updateMeta.value?.download_url || 'https://kzrylsrzyqrrpofaqixm.supabase.co/storage/v1/object/public/releases/Rostok.apk'
   window.open(url, '_blank')
 }
 </script>

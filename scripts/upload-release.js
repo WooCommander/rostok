@@ -131,16 +131,16 @@ console.log(`\n⬆️   Uploading APK v${version} (${(apkBuffer.length / 1024 / 
 
 const { error: apkError } = await supabase.storage
     .from('releases')
-    .upload('app-latest.apk', apkBuffer, {
+    .upload('Rostok.apk', apkBuffer, {
         contentType: 'application/vnd.android.package-archive',
         upsert: true,
     })
 
 if (apkError) { console.error('❌  APK upload failed:', apkError.message); process.exit(1) }
-console.log('✓  APK uploaded')
+console.log('✓  APK uploaded (Rostok.apk)')
 
 // ── Upload version.json ──────────────────────────────────────────────────────
-const apkUrl = `${SUPABASE_URL}/storage/v1/object/public/releases/app-latest.apk`
+const apkUrl = `${SUPABASE_URL}/storage/v1/object/public/releases/Rostok.apk`
 const manifest = JSON.stringify({ version, apkUrl, notes: releaseNotes }, null, 2)
 
 const { error: vErr } = await supabase.storage
