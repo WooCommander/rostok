@@ -16,7 +16,7 @@ onMounted(async () => {
   initTheme()
   DeviceService.initStatusBar()
   
-  const meta = await AppUpdateService.checkForUpdates('1.0.0')
+  const meta = await AppUpdateService.checkForUpdates('1.1.0')
   if (meta) {
     updateMeta.value = meta
     showUpdateModal.value = true
