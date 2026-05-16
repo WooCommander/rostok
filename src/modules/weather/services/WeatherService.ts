@@ -1,6 +1,9 @@
 // Open-Meteo — бесплатный API, без ключа
 // Docs: https://open-meteo.com/en/docs
 
+import { Geolocation } from '@capacitor/geolocation'
+import { Capacitor } from '@capacitor/core'
+
 export interface WeatherData {
   temp: number
   condition: string
@@ -11,17 +14,22 @@ export interface WeatherData {
 
 export const WeatherService = {
   async getCurrentPosition(): Promise<{ lat: number; lon: number }> {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Геолокация не поддерживается'))
-        return
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const perm = await Geolocation.checkPermissions()
+        if (perm.location !== 'granted') {
+          const request = await Geolocation.requestPermissions()
+          if (request.location !== 'granted') {
+            throw new Error('Нет разрешения на геолокацию')
+          }
+        }
       }
-      navigator.geolocation.getCurrentPosition(
-        pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-        () => reject(new Error('Не удалось получить координаты')),
-        { timeout: 8000 }
-      )
-    })
+      const pos = await Geolocation.getCurrentPosition({ timeout: 10000, enableHighAccuracy: true })
+      return { lat: pos.coords.latitude, lon: pos.coords.longitude }
+    } catch (e) {
+      console.error('Ошибка получения координат:', e)
+      throw new Error('Не удалось получить координаты')
+    }
   },
 
   async getWeather(lat: number, lon: number): Promise<WeatherData> {

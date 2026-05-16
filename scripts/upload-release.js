@@ -45,6 +45,17 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
     process.exit(1)
 }
 
+try {
+    const payload = JSON.parse(Buffer.from(SUPABASE_SERVICE_KEY.split('.')[1], 'base64').toString())
+    if (payload.role !== 'service_role') {
+        console.error(`\n❌  Invalid SUPABASE_SERVICE_ROLE_KEY. Expected role "service_role", but found "${payload.role}".`)
+        console.error('    Please copy the secret service_role key from your Supabase Dashboard.')
+        process.exit(1)
+    }
+} catch (e) {
+    console.warn('⚠️   Could not validate SUPABASE_SERVICE_ROLE_KEY format. Proceeding anyway...')
+}
+
 // ── Read package version ─────────────────────────────────────────────────────
 const pkg = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf-8'))
 const version = pkg.version
