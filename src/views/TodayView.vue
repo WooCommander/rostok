@@ -44,11 +44,24 @@ async function loadWeather() {
   }
 }
 
+const userPlants = ref<string[]>([])
+
 async function loadRecommendations() {
   recsLoading.value = true
   try {
     const temp = weather.value?.temp ?? 20
-    recommendations.value = await PlantService.getRecommendations(currentMonth, temp)
+    const [allRecs, myPlants] = await Promise.all([
+      PlantService.getRecommendations(currentMonth, temp),
+      PlantService.getUserPlants()
+    ])
+    userPlants.value = myPlants.map(u => u.plant_id)
+    if (userPlants.value.length > 0) {
+      const myRecs = allRecs.filter(r => userPlants.value.includes(r.plant_id))
+      const otherRecs = allRecs.filter(r => !userPlants.value.includes(r.plant_id))
+      recommendations.value = [...myRecs, ...otherRecs]
+    } else {
+      recommendations.value = allRecs
+    }
   } catch (e) {
     console.error(e)
   } finally {
@@ -123,7 +136,9 @@ onMounted(loadWeather)
         <div class="rec-content">
           <div class="rec-text">
             {{ careTypeLabel[rec.care_type] || rec.care_type }}
-            <span class="rec-plant"> — {{ rec.plant?.name }}</span>
+            <span class="rec-plant">
+              — <span v-if="userPlants.includes(rec.plant_id)" class="garden-star" title="Мой огород">⭐</span> {{ rec.plant?.name }}
+            </span>
           </div>
           <div class="rec-note">{{ rec.products?.slice(0, 2).join(', ') || rec.description }}</div>
         </div>
@@ -200,5 +215,6 @@ onMounted(loadWeather)
 .rec-text { font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
 .rec-plant { font-weight: 400; color: var(--color-text-secondary); }
 .rec-note { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.garden-star { font-size: 12px; margin-right: 2px; }
 .rec-arrow { color: var(--color-text-disabled); flex-shrink: 0; }
 </style>

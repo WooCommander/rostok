@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Plus } from 'lucide-vue-next'
+import { ArrowLeft, Plus, Bookmark, BookmarkCheck } from 'lucide-vue-next'
 import { PlantService, type Plant, type PlantCare } from '@/modules/plants/services/PlantService'
+import { authStore } from '@/modules/auth/store/authStore'
 
 const route = useRoute()
 const router = useRouter()
@@ -11,6 +12,7 @@ const plant = ref<Plant | null>(null)
 const careList = ref<PlantCare[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
+const inGarden = ref(false)
 
 // Месяцы по-русски
 const MONTHS = ['', 'янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
@@ -54,18 +56,33 @@ const CARE_CONFIG: Record<string, { label: string; color: string }> = {
 onMounted(async () => {
   const id = route.params.id as string
   try {
-    const [plantData, careData] = await Promise.all([
+    const [plantData, careData, myPlants] = await Promise.all([
       PlantService.getById(id),
       PlantService.getCareForPlant(id),
+      PlantService.getUserPlants()
     ])
     plant.value = plantData
     careList.value = careData
+    inGarden.value = myPlants.some(u => u.plant_id === id)
   } catch (e: any) {
     error.value = e.message || 'Ошибка загрузки'
   } finally {
     loading.value = false
   }
 })
+
+async function toggleGarden() {
+  if (!authStore.user.value) {
+    router.push('/login')
+    return
+  }
+  const id = route.params.id as string
+  try {
+    inGarden.value = await PlantService.toggleUserPlant(id)
+  } catch (e) {
+    console.error(e)
+  }
+}
 </script>
 
 <template>
@@ -108,6 +125,16 @@ onMounted(async () => {
           <div class="detail-latin">{{ plant.latin_name }}</div>
         </div>
         <span class="detail-category">{{ CATEGORY_LABELS[plant.category] || plant.category }}</span>
+        <button
+          class="header-garden-btn"
+          :class="{ active: inGarden }"
+          :title="inGarden ? 'В моём саду' : 'Добавить в мой сад'"
+          @click="toggleGarden"
+        >
+          <BookmarkCheck v-if="inGarden" :size="20" />
+          <Bookmark v-else :size="20" />
+          <span class="btn-text">{{ inGarden ? 'В саду' : 'В сад' }}</span>
+        </button>
       </div>
 
       <div class="detail-body">
@@ -209,6 +236,27 @@ onMounted(async () => {
   padding: 4px 10px;
   border-radius: 20px;
   flex-shrink: 0;
+}
+
+.header-garden-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  color: white;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.15s;
+
+  &:hover { background: rgba(255, 255, 255, 0.3); }
+  &.active {
+    background: white;
+    color: var(--color-primary);
+  }
 }
 
 /* ── BODY ── */

@@ -1,18 +1,24 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Check } from 'lucide-vue-next'
-import { PlantService, type Plant } from '@/modules/plants/services/PlantService'
+import { PlantService, type Plant, type UserPlant } from '@/modules/plants/services/PlantService'
 import { JournalService } from '@/modules/journal/services/JournalService'
 import { WeatherService } from '@/modules/weather/services/WeatherService'
 
 const router = useRouter()
 
 const plants = ref<Plant[]>([])
+const userPlantsList = ref<UserPlant[]>([])
+const myGardenPlants = computed(() => userPlantsList.value)
+const otherPlants = computed(() => {
+  const myPlantIds = new Set(userPlantsList.value.map(u => u.plant_id))
+  return plants.value.filter(p => !myPlantIds.has(p.id))
+})
 const saving = ref(false)
 
 const form = ref({
-  plant_id: '',
+  selected_id: '',
   type: 'spraying',
   product: '',
   dose: '',
@@ -30,7 +36,16 @@ const types = [
 ]
 
 onMounted(async () => {
-  plants.value = await PlantService.getAll()
+  try {
+    const [allPlants, myPlants] = await Promise.all([
+      PlantService.getAll(),
+      PlantService.getUserPlants()
+    ])
+    plants.value = allPlants
+    userPlantsList.value = myPlants
+  } catch (e) {
+    console.error(e)
+  }
   // Автоподставить температуру
   try {
     const w = await WeatherService.getWithCache()
@@ -39,11 +54,31 @@ onMounted(async () => {
 })
 
 async function save() {
-  if (!form.value.plant_id) return
+  if (!form.value.selected_id) return
   saving.value = true
+
+  const isU = form.value.selected_id.startsWith('u_')
+  const idVal = form.value.selected_id.slice(2)
+  let plantId = ''
+  let userPlantId: string | null = null
+
+  if (isU) {
+    userPlantId = idVal
+    const uPlant = userPlantsList.value.find(u => u.id === idVal)
+    if (uPlant) plantId = uPlant.plant_id
+  } else {
+    plantId = idVal
+  }
+
+  if (!plantId) {
+    saving.value = false
+    return
+  }
+
   try {
     await JournalService.add({
-      plant_id: form.value.plant_id || null,
+      plant_id: plantId,
+      user_plant_id: userPlantId,
       treated_at: form.value.date,
       care_type: form.value.type,
       product: form.value.product || undefined,
@@ -75,11 +110,18 @@ async function save() {
 
       <div class="field">
         <label class="field-label">Растение</label>
-        <select v-model="form.plant_id" class="field-input">
+        <select v-model="form.selected_id" class="field-input">
           <option value="" disabled>Выбери растение...</option>
-          <option v-for="p in plants" :key="p.id" :value="p.id">
-            {{ p.emoji }} {{ p.name }}
-          </option>
+          <optgroup v-if="myGardenPlants.length" label="⭐ Мой огород">
+            <option v-for="u in myGardenPlants" :key="u.id" :value="'u_' + u.id">
+              {{ u.plant?.emoji }} {{ u.nickname || u.plant?.name }} {{ u.location_note ? `(${u.location_note})` : '' }}
+            </option>
+          </optgroup>
+          <optgroup label="Все культуры">
+            <option v-for="p in otherPlants" :key="p.id" :value="'p_' + p.id">
+              {{ p.emoji }} {{ p.name }}
+            </option>
+          </optgroup>
         </select>
       </div>
 
@@ -114,7 +156,7 @@ async function save() {
         <textarea v-model="form.note" class="field-input field-textarea" placeholder="Наблюдения..." rows="3"></textarea>
       </div>
 
-      <button class="save-btn" :disabled="!form.plant_id || saving" @click="save">
+      <button class="save-btn" :disabled="!form.selected_id || saving" @click="save">
         <Check :size="18" />
         {{ saving ? 'Сохраняю...' : 'Сохранить' }}
       </button>

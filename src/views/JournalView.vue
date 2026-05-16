@@ -70,7 +70,11 @@ onMounted(load)
           </div>
         </div>
         <div class="entry-plant">
-          {{ entry.plant?.emoji }} {{ entry.plant?.name || '—' }}
+          <span class="plant-emoji">{{ entry.plant?.emoji }}</span>
+          <span class="plant-title">
+            {{ entry.user_plant?.nickname || entry.plant?.name || '—' }}
+            <span v-if="entry.user_plant?.location_note" class="plant-loc">({{ entry.user_plant.location_note }})</span>
+          </span>
         </div>
         <div v-if="entry.product" class="entry-product">
           {{ entry.product }}
@@ -125,7 +129,8 @@ onMounted(load)
   background: none; border: none; color: var(--color-text-disabled); cursor: pointer; padding: 2px;
   &:hover { color: var(--color-error); }
 }
-.entry-plant { font-size: 15px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 6px; }
+.entry-plant { font-size: 15px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.plant-loc { font-size: 13px; font-weight: 400; color: var(--color-text-tertiary); }
 .entry-product { font-size: 13px; color: var(--color-primary); margin-bottom: 6px; }
 .entry-dose { color: var(--color-text-secondary); }
 .entry-meta { display: flex; gap: 12px; font-size: 12px; color: var(--color-text-secondary); }
