@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Plus, Bookmark, BookmarkCheck, Sparkles } from 'lucide-vue-next'
 import { PlantService, type Plant, type PlantCare, type PlantSecret } from '@/modules/plants/services/PlantService'
@@ -15,6 +15,7 @@ const activeTab = ref<'care' | 'secrets'>('care')
 const loading = ref(true)
 const error = ref<string | null>(null)
 const inGarden = ref(false)
+const isScrolled = ref(false)
 
 // Месяцы по-русски
 const MONTHS = ['', 'янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
@@ -55,7 +56,12 @@ const CARE_CONFIG: Record<string, { label: string; color: string }> = {
   pest:       { label: 'От вредителей', color: '#E76F51' },
 }
 
+function onScroll() {
+  isScrolled.value = window.scrollY > 30
+}
+
 onMounted(async () => {
+  window.addEventListener('scroll', onScroll, { passive: true })
   const id = route.params.id as string
   try {
     const [plantData, careData, myPlants] = await Promise.all([
@@ -74,6 +80,10 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', onScroll)
 })
 
 async function toggleGarden() {
@@ -120,7 +130,7 @@ async function toggleGarden() {
 
     <!-- DATA -->
     <template v-else>
-      <div class="sticky-top-container">
+      <div class="sticky-top-container" :class="{ 'is-scrolled': isScrolled }">
         <div class="detail-header">
           <button class="back-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
           <div class="detail-emoji">
@@ -238,8 +248,15 @@ async function toggleGarden() {
   top: calc(56px + env(safe-area-inset-top, 0px));
   z-index: 100;
   background: var(--color-background);
-  border-bottom: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
+  border-bottom: 1px solid transparent;
+  transition: all 0.25s ease;
+
+  &.is-scrolled {
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    background: color-mix(in srgb, var(--color-background) 85%, transparent);
+    backdrop-filter: blur(16px);
+  }
 }
 
 /* ── HEADER ── */

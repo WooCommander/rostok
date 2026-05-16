@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useTheme } from '@/composables/useTheme'
 import { authStore } from '@/modules/auth/store/authStore'
 import { changelog } from '@/data/changelog'
 import {
   Home, Leaf, User, ClipboardList, Menu, X,
-  FileText, LogOut, Sun, Moon, Plus, Palette
+  FileText, LogOut, Sun, Moon, Plus, Palette, ArrowUp
 } from 'lucide-vue-next'
 import { FpHaptics } from '@/shared/lib/haptics'
 
@@ -18,8 +18,26 @@ const userRef = computed(() => authStore.user.value)
 const appVersion = changelog[0]?.version || ''
 const avatarLetter = computed(() => userRef.value?.email?.charAt(0).toUpperCase() || '?')
 const isMenuOpen = ref(false)
+const showScrollTop = ref(false)
 
 const currentPath = computed(() => route.path)
+
+const checkScroll = () => {
+  showScrollTop.value = window.scrollY > 500
+}
+
+const scrollToTop = () => {
+  FpHaptics.light()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', checkScroll, { passive: true })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', checkScroll)
+})
 
 const handleProfileClick = async () => {
   FpHaptics.light()
@@ -103,6 +121,13 @@ const handleLogout = async () => {
         <span class="label">Профиль</span>
       </a>
     </nav>
+
+    <!-- Scroll to Top Button -->
+    <transition name="fade-scale">
+      <button v-if="showScrollTop" class="scroll-top-btn" @click="scrollToTop" title="Наверх">
+        <ArrowUp :size="24" />
+      </button>
+    </transition>
 
     <!-- Backdrop -->
     <transition name="fade">
@@ -500,9 +525,44 @@ const handleLogout = async () => {
 
 .logout-drawer:hover { color: var(--color-error); }
 
+/* ── SCROLL TO TOP ── */
+.scroll-top-btn {
+  position: fixed;
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1500;
+  transition: transform 0.15s, background 0.15s;
+
+  &:hover {
+    background: color-mix(in srgb, var(--color-primary) 90%, white);
+    transform: translateY(-2px);
+  }
+  &:active {
+    transform: scale(0.92);
+  }
+
+  @media (min-width: 769px) {
+    bottom: 30px;
+    right: 30px;
+  }
+}
+
 /* ── TRANSITIONS ── */
 .slide-right-enter-active, .slide-right-leave-active { transition: transform 0.25s ease; }
 .slide-right-enter-from, .slide-right-leave-to { transform: translateX(-100%); }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.15s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+.fade-scale-enter-active, .fade-scale-leave-active { transition: opacity 0.2s, transform 0.2s; }
+.fade-scale-enter-from, .fade-scale-leave-to { opacity: 0; transform: scale(0.8); }
 </style>
