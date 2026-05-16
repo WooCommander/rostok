@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Search, ChevronRight, Bookmark, BookmarkCheck, Trash2, Plus, Edit3, Camera, UploadCloud } from 'lucide-vue-next'
+import { Search, ChevronRight, Bookmark, BookmarkCheck, Trash2, Plus, Camera, UploadCloud } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { PlantService, type Plant, type UserPlant } from '@/modules/plants/services/PlantService'
 import { authStore } from '@/modules/auth/store/authStore'
+import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 
 const router = useRouter()
 const search = ref('')
@@ -32,18 +33,27 @@ const filteredCatalog = computed(() => {
   })
 })
 
-const filteredGarden = computed(() => {
-  return userPlantsList.value.filter(u => {
+const groupedGarden = computed(() => {
+  const groups = new Map<string, { plant: Plant; instances: UserPlant[] }>()
+  for (const u of userPlantsList.value) {
     const p = u.plant || plants.value.find(item => item.id === u.plant_id)
-    if (!p) return false
+    if (!p) continue
+    
     const matchCat = activeCategory.value === 'all' || p.category === activeCategory.value
-    const s = search.value.toLowerCase()
+    const s = search.value.toLowerCase().trim()
     const matchSearch = !s || 
       p.name.toLowerCase().includes(s) ||
       (u.nickname && u.nickname.toLowerCase().includes(s)) ||
       (u.location_note && u.location_note.toLowerCase().includes(s))
-    return matchCat && matchSearch
-  })
+      
+    if (!matchCat || !matchSearch) continue
+    
+    if (!groups.has(p.id)) {
+      groups.set(p.id, { plant: p, instances: [] })
+    }
+    groups.get(p.id)!.instances.push(u)
+  }
+  return Array.from(groups.values())
 })
 
 const editingPlant = ref<UserPlant | null>(null)
@@ -111,9 +121,19 @@ async function saveEditPlant() {
   }
 }
 
-async function deleteUserPlant(id: string) {
-  if (!confirm('Удалить эту грядку/культуру из вашего огорода?')) return
+const showDeleteConfirm = ref(false)
+const plantToDelete = ref<string | null>(null)
+
+function confirmDelete(id: string) {
+  plantToDelete.value = id
+  showDeleteConfirm.value = true
+}
+
+async function onConfirmDelete() {
+  if (!plantToDelete.value) return
   savingModal.value = true
+  const id = plantToDelete.value
+  showDeleteConfirm.value = false
   try {
     await PlantService.removeUserPlant(id)
     userPlantsList.value = userPlantsList.value.filter(u => u.id !== id)
@@ -122,6 +142,7 @@ async function deleteUserPlant(id: string) {
     console.error(e)
   } finally {
     savingModal.value = false
+    plantToDelete.value = null
   }
 }
 
@@ -251,31 +272,49 @@ onMounted(loadData)
     <!-- Вкладка Огород: Список -->
     <template v-else-if="activeTab === 'garden'">
       <div class="garden-header-bar">
-        <span class="count-label">{{ filteredGarden.length }} грядок (культур)</span>
+        <span class="count-label">{{ userPlantsList.length }} грядок (в {{ groupedGarden.length }} группах)</span>
         <button class="add-bed-btn" @click="activeTab = 'catalog'"><Plus :size="16" /> Из каталога</button>
       </div>
-      <div class="plants-grid">
-        <div
-          v-for="uPlant in filteredGarden" :key="uPlant.id"
-          class="plant-card garden-bed-card"
-          @click="router.push(`/plants/${uPlant.plant_id}`)"
-        >
-          <div v-if="uPlant.photo_url" class="plant-photo-thumb" :style="{ backgroundImage: `url(${uPlant.photo_url})` }"></div>
-          <div v-else class="plant-emoji">{{ getPlantObj(uPlant)?.emoji }}</div>
-          <div class="plant-info">
-            <div class="plant-title-row">
-              <span class="plant-name">{{ uPlant.nickname || getPlantObj(uPlant)?.name }}</span>
-              <span v-if="uPlant.nickname" class="plant-sub">({{ getPlantObj(uPlant)?.name }})</span>
+
+      <div class="grouped-garden-container">
+        <div v-for="group in groupedGarden" :key="group.plant.id" class="garden-group-card">
+          <div class="group-header" @click="router.push(`/plants/${group.plant.id}`)">
+            <div class="group-title-left">
+              <span class="group-emoji">{{ group.plant.emoji }}</span>
+              <h2 class="group-name">{{ group.plant.name }}</h2>
+              <span class="instance-count">{{ group.instances.length }} шт.</span>
             </div>
-            <div class="plant-meta-tags">
-              <span v-if="uPlant.location_note" class="tag-loc">📍 {{ uPlant.location_note }}</span>
-              <span v-if="uPlant.planted_at" class="tag-date">📅 {{ formatDateDisplay(uPlant.planted_at) }}</span>
-              <span v-if="!uPlant.location_note && !uPlant.planted_at" class="tag-empty">✏️ Указать сорт и грядку</span>
+            <div class="group-actions">
+              <button class="add-instance-btn" @click.stop="addAnotherInstance(group.plant.id)" title="Добавить экземпляр">
+                <Plus :size="16" /> Добавить
+              </button>
+              <ChevronRight :size="20" class="arrow-icon" />
             </div>
           </div>
-          <button class="edit-bed-btn" @click="openEditModal(uPlant, $event)" title="Настроить грядку">
-            <Edit3 :size="18" />
-          </button>
+
+          <div class="group-instances-grid">
+            <div
+              v-for="(uPlant, idx) in group.instances" :key="uPlant.id"
+              class="instance-card"
+              @click="openEditModal(uPlant, $event)"
+            >
+              <div v-if="uPlant.photo_url" class="inst-photo" :style="{ backgroundImage: `url(${uPlant.photo_url})` }"></div>
+              <div v-else class="inst-icon-placeholder">🌱</div>
+              <div class="inst-info">
+                <div class="inst-head-row">
+                  <h4 class="inst-nickname">{{ uPlant.nickname || `${group.plant.name} #${idx + 1}` }}</h4>
+                </div>
+                <div class="inst-tags">
+                  <span v-if="uPlant.location_note" class="tag-loc">📍 {{ uPlant.location_note }}</span>
+                  <span v-if="uPlant.planted_at" class="tag-date">📅 {{ formatDateDisplay(uPlant.planted_at) }}</span>
+                  <span v-if="!uPlant.location_note && !uPlant.planted_at" class="tag-empty">✏️ Указать сорт/грядку</span>
+                </div>
+              </div>
+              <button class="delete-inst-btn" @click.stop="confirmDelete(uPlant.id)" title="Удалить">
+                <Trash2 :size="16" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </template>
@@ -303,7 +342,7 @@ onMounted(loadData)
             <BookmarkCheck v-if="userPlantIds.includes(plant.id)" :size="20" />
             <Bookmark v-else :size="20" />
           </button>
-          <ChevronRight :size="14" class="plant-arrow" />
+          <ChevronRight :size="16" class="plant-arrow" />
         </div>
       </div>
     </template>
@@ -312,7 +351,7 @@ onMounted(loadData)
     <div v-if="editingPlant" class="modal-backdrop" @click="closeEditModal">
       <div class="modal-box" @click.stop>
         <div class="modal-header">
-          <h3>🌱 {{ getPlantObj(editingPlant)?.name }}</h3>
+          <h3>Настройка грядки</h3>
           <button class="close-btn" @click="closeEditModal">✕</button>
         </div>
         <div class="modal-body">
@@ -351,7 +390,7 @@ onMounted(loadData)
           </div>
 
           <div class="modal-actions">
-            <button class="delete-btn" @click="deleteUserPlant(editingPlant.id)" :disabled="savingModal">
+            <button class="delete-btn" @click="confirmDelete(editingPlant.id)" :disabled="savingModal">
               <Trash2 :size="18" /> Удалить
             </button>
             <button class="save-btn" @click="saveEditPlant" :disabled="savingModal">
@@ -361,6 +400,17 @@ onMounted(loadData)
         </div>
       </div>
     </div>
+
+    <!-- Подтверждение удаления -->
+    <ConfirmDialog
+      v-model="showDeleteConfirm"
+      title="Удаление грядки"
+      message="Вы уверены, что хотите удалить эту грядку/культуру из вашего огорода? Вся связанная с ней история и записи будут удалены."
+      confirmText="Удалить"
+      cancelText="Отмена"
+      :isDanger="true"
+      @confirm="onConfirmDelete"
+    />
   </div>
 </template>
 
@@ -590,6 +640,182 @@ onMounted(loadData)
   .save-btn {
     flex: 1; padding: 10px 20px; background: var(--color-primary); color: var(--color-on-primary);
     border: none; border-radius: var(--radius-md); font-weight: 600; cursor: pointer;
+  }
+}
+
+/* ── GROUPED GARDEN ── */
+.grouped-garden-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.garden-group-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s, border-color 0.2s;
+
+  &:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary-subtle, rgba(45,106,79,0.3));
+  }
+}
+
+.group-header {
+  padding: 16px 20px;
+  background: var(--color-surface-hover);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover { background: var(--color-primary-subtle, rgba(45,106,79,0.1)); }
+}
+
+.group-title-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.group-emoji { font-size: 26px; }
+.group-name { margin: 0; font-size: 18px; font-weight: 800; color: var(--color-text-primary); }
+.instance-count {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 10px;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 20px;
+}
+
+.group-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.add-instance-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--color-background);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: var(--color-primary);
+    color: white;
+    transform: translateY(-1px);
+  }
+}
+
+.group-instances-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding: 16px;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.instance-card {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+.inst-photo {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border);
+}
+
+.inst-icon-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.inst-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inst-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inst-nickname {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inst-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.delete-inst-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-disabled);
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    color: var(--color-error, #E76F51);
+    background: rgba(231,111,81,0.15);
   }
 }
 </style>

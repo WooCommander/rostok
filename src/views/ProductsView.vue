@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, X, ShieldAlert, Sparkles } from 'lucide-vue-next'
+import { Search, X } from 'lucide-vue-next'
 import { ProductService, type ProductItem, ProductCard } from '@/modules/products'
 
 const router = useRouter()

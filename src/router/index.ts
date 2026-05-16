@@ -49,6 +49,16 @@ const routes = [
         path: '/changelog',
         name: 'Changelog',
         component: () => import('@/views/ChangelogView.vue')
+    },
+    {
+        path: '/products',
+        name: 'Products',
+        component: () => import('@/views/ProductsView.vue')
+    },
+    {
+        path: '/products/:id',
+        name: 'ProductDetail',
+        component: () => import('@/views/ProductDetailView.vue')
     }
 ]
 

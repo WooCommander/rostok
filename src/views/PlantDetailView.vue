@@ -98,6 +98,10 @@ async function toggleGarden() {
     console.error(e)
   }
 }
+
+function goToProduct(name: string) {
+  router.push(`/products/${encodeURIComponent(name.toLowerCase())}`)
+}
 </script>
 
 <template>
@@ -196,7 +200,7 @@ async function toggleGarden() {
               <div class="care-text">{{ item.description }}</div>
 
               <div v-if="item.products && item.products.length" class="care-products">
-                <span v-for="p in item.products" :key="p" class="product-tag">{{ p }}</span>
+                <span v-for="p in item.products" :key="p" class="product-tag" @click="goToProduct(p)">{{ p }}</span>
               </div>
 
               <div class="care-meta">
@@ -474,9 +478,17 @@ async function toggleGarden() {
   font-size: 11px;
   background: var(--color-primary-subtle, rgba(45,106,79,0.1));
   color: var(--color-primary);
-  padding: 2px 8px;
+  padding: 4px 10px;
   border-radius: 20px;
-  font-weight: 500;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: var(--color-primary);
+    color: white;
+    transform: translateY(-1px);
+  }
 }
 
 /* ── META ROW ── */

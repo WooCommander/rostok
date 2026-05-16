@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ProductItem } from '../services/ProductService'
-import { AlertCircle, Clock, ShieldAlert } from 'lucide-vue-next'
+import { Clock, ShieldAlert } from 'lucide-vue-next'
 
 interface Props {
   product: ProductItem
