@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Sun, Droplets, ChevronRight, RefreshCw } from 'lucide-vue-next'
+import { Sun, Droplets, ChevronRight, RefreshCw, Calculator, ShieldAlert } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { WeatherService, type WeatherData } from '@/modules/weather/services/WeatherService'
 import { PlantService, type PlantCare, type Plant } from '@/modules/plants/services/PlantService'
@@ -107,6 +107,27 @@ onMounted(loadWeather)
       <div class="alert-text">
         При t° {{ weather.temp }}°C и влажности — повышенный риск мучнистой росы и фитофтороза.
         Проведи профилактическое опрыскивание.
+      </div>
+    </div>
+
+    <!-- Быстрый доступ -->
+    <div class="quick-banners-grid">
+      <div class="banner-card calc-banner" @click="router.push('/calculator')">
+        <div class="banner-icon"><Calculator :size="24" /></div>
+        <div class="banner-info">
+          <h3>Агрокалькулятор</h3>
+          <p>Расчет дозировок удобрений и полива</p>
+        </div>
+        <ChevronRight :size="18" class="banner-arrow" />
+      </div>
+
+      <div class="banner-card prod-banner" @click="router.push('/products')">
+        <div class="banner-icon"><ShieldAlert :size="24" /></div>
+        <div class="banner-info">
+          <h3>Справочник препаратов</h3>
+          <p>Составы, сроки ожидания и аналоги</p>
+        </div>
+        <ChevronRight :size="18" class="banner-arrow" />
       </div>
     </div>
 
@@ -217,4 +238,78 @@ onMounted(loadWeather)
 .rec-note { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .garden-star { font-size: 12px; margin-right: 2px; }
 .rec-arrow { color: var(--color-text-disabled); flex-shrink: 0; }
+
+/* ── QUICK BANNERS ── */
+.quick-banners-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.banner-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-sm);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  &.calc-banner {
+    border-color: rgba(45,106,79,0.3);
+    .banner-icon { background: rgba(45,106,79,0.15); color: var(--color-primary); }
+    &:hover { border-color: var(--color-primary); }
+  }
+
+  &.prod-banner {
+    border-color: rgba(244,162,97,0.3);
+    .banner-icon { background: rgba(244,162,97,0.15); color: #F4A261; }
+    &:hover { border-color: #F4A261; }
+  }
+}
+
+.banner-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.banner-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  h3 { margin: 0; font-size: 16px; font-weight: 800; color: var(--color-text-primary); }
+  p { margin: 0; font-size: 12px; color: var(--color-text-secondary); line-height: 1.3; }
+}
+
+.banner-arrow {
+  color: var(--color-text-disabled);
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.banner-card:hover .banner-arrow {
+  transform: translateX(2px);
+  color: var(--color-text-primary);
+}
 </style>
