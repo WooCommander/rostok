@@ -120,51 +120,55 @@ async function toggleGarden() {
 
     <!-- DATA -->
     <template v-else>
-      <div class="detail-header">
-        <button class="back-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
-        <div class="detail-emoji">
-          {{ plant.emoji || CATEGORY_EMOJI[plant.category] || '🌱' }}
+      <div class="sticky-top-container">
+        <div class="detail-header">
+          <button class="back-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
+          <div class="detail-emoji">
+            {{ plant.emoji || CATEGORY_EMOJI[plant.category] || '🌱' }}
+          </div>
+          <div class="detail-names">
+            <h1 class="detail-name">{{ plant.name }}</h1>
+            <div class="detail-latin">{{ plant.latin_name }}</div>
+          </div>
+          <span class="detail-category">{{ CATEGORY_LABELS[plant.category] || plant.category }}</span>
+          <button
+            class="header-garden-btn"
+            :class="{ active: inGarden }"
+            :title="inGarden ? 'В моём саду' : 'Добавить в мой сад'"
+            @click="toggleGarden"
+          >
+            <BookmarkCheck v-if="inGarden" :size="20" />
+            <Bookmark v-else :size="20" />
+            <span class="btn-text">{{ inGarden ? 'В саду' : 'В сад' }}</span>
+          </button>
         </div>
-        <div class="detail-names">
-          <h1 class="detail-name">{{ plant.name }}</h1>
-          <div class="detail-latin">{{ plant.latin_name }}</div>
+
+        <div class="detail-subhead">
+          <p class="detail-desc">{{ plant.description }}</p>
+
+          <!-- Tabs switcher -->
+          <div class="tabs-wrap">
+            <button
+              class="tab-btn"
+              :class="{ active: activeTab === 'care' }"
+              @click="activeTab = 'care'"
+            >
+              Уход и календарь
+            </button>
+            <button
+              class="tab-btn"
+              :class="{ active: activeTab === 'secrets' }"
+              @click="activeTab = 'secrets'"
+            >
+              <Sparkles :size="16" />
+              Секреты урожая
+              <span v-if="secretsList.length" class="badge">{{ secretsList.length }}</span>
+            </button>
+          </div>
         </div>
-        <span class="detail-category">{{ CATEGORY_LABELS[plant.category] || plant.category }}</span>
-        <button
-          class="header-garden-btn"
-          :class="{ active: inGarden }"
-          :title="inGarden ? 'В моём саду' : 'Добавить в мой сад'"
-          @click="toggleGarden"
-        >
-          <BookmarkCheck v-if="inGarden" :size="20" />
-          <Bookmark v-else :size="20" />
-          <span class="btn-text">{{ inGarden ? 'В саду' : 'В сад' }}</span>
-        </button>
       </div>
 
       <div class="detail-body">
-        <p class="detail-desc">{{ plant.description }}</p>
-
-        <!-- Tabs switcher -->
-        <div class="tabs-wrap">
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'care' }"
-            @click="activeTab = 'care'"
-          >
-            Уход и календарь
-          </button>
-          <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'secrets' }"
-            @click="activeTab = 'secrets'"
-          >
-            <Sparkles :size="16" />
-            Секреты урожая
-            <span v-if="secretsList.length" class="badge">{{ secretsList.length }}</span>
-          </button>
-        </div>
-
         <div v-if="activeTab === 'care'" class="care-section">
           <div class="section-title">Уход и обработка</div>
 
@@ -204,7 +208,6 @@ async function toggleGarden() {
           </div>
 
           <div v-for="secret in secretsList" :key="secret.id" class="secret-card">
-            <div class="secret-emoji">{{ secret.emoji || '💡' }}</div>
             <div class="secret-content">
               <div class="secret-title">{{ secret.title }}</div>
               <div class="secret-desc">{{ secret.description }}</div>
@@ -229,10 +232,20 @@ async function toggleGarden() {
   background: var(--color-background);
 }
 
+/* ── STICKY TOP CONTAINER ── */
+.sticky-top-container {
+  position: sticky;
+  top: calc(56px + env(safe-area-inset-top, 0px));
+  z-index: 100;
+  background: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
 /* ── HEADER ── */
 .detail-header {
   background: var(--color-primary);
-  padding: 16px 16px 24px;
+  padding: 16px 16px 20px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -300,14 +313,19 @@ async function toggleGarden() {
   }
 }
 
-/* ── BODY ── */
+/* ── SUBHEAD & BODY ── */
+.detail-subhead {
+  padding: 16px 16px 12px;
+  background: var(--color-background);
+}
+
 .detail-body { padding: 16px; }
 
 .detail-desc {
   font-size: 14px;
   color: var(--color-text-secondary);
   line-height: 1.6;
-  margin: 0 0 20px;
+  margin: 0 0 16px;
 }
 
 /* ── TABS ── */
@@ -317,7 +335,7 @@ async function toggleGarden() {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 4px;
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 .tab-btn {
   flex: 1;
@@ -357,22 +375,9 @@ async function toggleGarden() {
   border-radius: var(--radius-md);
   padding: 16px;
   margin-bottom: 12px;
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
   box-shadow: var(--shadow-sm);
 }
-.secret-emoji {
-  font-size: 28px;
-  flex-shrink: 0;
-  padding: 8px;
-  background: var(--color-surface-hover);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.secret-content { flex: 1; min-width: 0; }
+.secret-content { min-width: 0; }
 .secret-title {
   font-size: 16px;
   font-weight: 700;
@@ -383,6 +388,7 @@ async function toggleGarden() {
   font-size: 14px;
   color: var(--color-text-secondary);
   line-height: 1.6;
+  white-space: pre-line;
 }
 
 /* ── CARE SECTION ── */

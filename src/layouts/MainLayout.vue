@@ -256,7 +256,7 @@ const handleLogout = async () => {
 /* ── CONTENT ── */
 .page-content {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: visible;
 }
 
 .content-container {
