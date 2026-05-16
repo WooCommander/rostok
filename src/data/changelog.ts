@@ -9,6 +9,18 @@ export interface ReleaseNote {
 
 export const changelog: ReleaseNote[] = [
     {
+        version: '1.1.1',
+        date: '2026-05-17',
+        highlights: [
+            'Брендирование и уникальная иконка приложения'
+        ],
+        features: [
+            'Официальное русское название "Росток — Дневник агронома" в Android и веб-версии.',
+            'Сгенерированная нейросетью великолепная иконка с ростком в эстетике Glassmorphism.',
+            'Выходной APK-файл переименован в стабильный Rostok.apk в облачном хранилище.'
+        ]
+    },
+    {
         version: '1.1.0',
         date: '2026-05-17',
         highlights: [
