@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Plus, Bookmark, BookmarkCheck } from 'lucide-vue-next'
-import { PlantService, type Plant, type PlantCare } from '@/modules/plants/services/PlantService'
+import { ArrowLeft, Plus, Bookmark, BookmarkCheck, Sparkles } from 'lucide-vue-next'
+import { PlantService, type Plant, type PlantCare, type PlantSecret } from '@/modules/plants/services/PlantService'
 import { authStore } from '@/modules/auth/store/authStore'
 
 const route = useRoute()
@@ -10,6 +10,8 @@ const router = useRouter()
 
 const plant = ref<Plant | null>(null)
 const careList = ref<PlantCare[]>([])
+const secretsList = ref<PlantSecret[]>([])
+const activeTab = ref<'care' | 'secrets'>('care')
 const loading = ref(true)
 const error = ref<string | null>(null)
 const inGarden = ref(false)
@@ -63,6 +65,9 @@ onMounted(async () => {
     ])
     plant.value = plantData
     careList.value = careData
+    if (plantData) {
+      secretsList.value = await PlantService.getSecretsForPlant(plantData.id, plantData.name)
+    }
     inGarden.value = myPlants.some(u => u.plant_id === id)
   } catch (e: any) {
     error.value = e.message || 'Ошибка загрузки'
@@ -140,7 +145,27 @@ async function toggleGarden() {
       <div class="detail-body">
         <p class="detail-desc">{{ plant.description }}</p>
 
-        <div class="care-section">
+        <!-- Tabs switcher -->
+        <div class="tabs-wrap">
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'care' }"
+            @click="activeTab = 'care'"
+          >
+            Уход и календарь
+          </button>
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'secrets' }"
+            @click="activeTab = 'secrets'"
+          >
+            <Sparkles :size="16" />
+            Секреты урожая
+            <span v-if="secretsList.length" class="badge">{{ secretsList.length }}</span>
+          </button>
+        </div>
+
+        <div v-if="activeTab === 'care'" class="care-section">
           <div class="section-title">Уход и обработка</div>
 
           <div v-if="careList.length === 0" class="care-empty">
@@ -167,6 +192,22 @@ async function toggleGarden() {
                   🌡 {{ formatTemp(item.temp_min, item.temp_max) }}
                 </span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="activeTab === 'secrets'" class="secrets-section">
+          <div class="section-title">Принципы хорошего урожая</div>
+
+          <div v-if="secretsList.length === 0" class="care-empty">
+            Секреты для этой культуры скоро появятся!
+          </div>
+
+          <div v-for="secret in secretsList" :key="secret.id" class="secret-card">
+            <div class="secret-emoji">{{ secret.emoji || '💡' }}</div>
+            <div class="secret-content">
+              <div class="secret-title">{{ secret.title }}</div>
+              <div class="secret-desc">{{ secret.description }}</div>
             </div>
           </div>
         </div>
@@ -267,6 +308,81 @@ async function toggleGarden() {
   color: var(--color-text-secondary);
   line-height: 1.6;
   margin: 0 0 20px;
+}
+
+/* ── TABS ── */
+.tabs-wrap {
+  display: flex;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 4px;
+  margin-bottom: 20px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s;
+
+  &.active {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+  }
+
+  .badge {
+    background: color-mix(in srgb, currentColor 20%, transparent);
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 11px;
+  }
+}
+
+/* ── SECRETS SECTION ── */
+.secrets-section { margin-bottom: 20px; }
+.secret-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  box-shadow: var(--shadow-sm);
+}
+.secret-emoji {
+  font-size: 28px;
+  flex-shrink: 0;
+  padding: 8px;
+  background: var(--color-surface-hover);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.secret-content { flex: 1; min-width: 0; }
+.secret-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 6px;
+}
+.secret-desc {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
 }
 
 /* ── CARE SECTION ── */

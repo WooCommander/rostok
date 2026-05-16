@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { Search, ChevronRight, Bookmark, BookmarkCheck, Trash2, Plus, Edit3 } from 'lucide-vue-next'
+import { Search, ChevronRight, Bookmark, BookmarkCheck, Trash2, Plus, Edit3, Camera, UploadCloud } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { PlantService, type Plant, type UserPlant } from '@/modules/plants/services/PlantService'
 import { authStore } from '@/modules/auth/store/authStore'
@@ -46,10 +46,11 @@ const filteredGarden = computed(() => {
   })
 })
 
-// Модалка настройки
 const editingPlant = ref<UserPlant | null>(null)
 const editForm = ref({ nickname: '', location_note: '', planted_at: '' })
 const savingModal = ref(false)
+const uploadingPhoto = ref(false)
+const fileInputRef = ref<HTMLInputElement | null>(null)
 
 function openEditModal(uPlant: UserPlant, event: Event) {
   event.stopPropagation()
@@ -63,6 +64,32 @@ function openEditModal(uPlant: UserPlant, event: Event) {
 
 function closeEditModal() {
   editingPlant.value = null
+}
+
+async function triggerPhotoSelect() {
+  fileInputRef.value?.click()
+}
+
+async function onPhotoSelected(e: Event) {
+  if (!editingPlant.value) return
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  uploadingPhoto.value = true
+  try {
+    const newUrl = await PlantService.uploadGardenPhoto(file, editingPlant.value.id)
+    editingPlant.value.photo_url = newUrl
+    const idx = userPlantsList.value.findIndex(u => u.id === editingPlant.value?.id)
+    if (idx !== -1) {
+      userPlantsList.value[idx].photo_url = newUrl
+    }
+  } catch (err: any) {
+    alert('Ошибка загрузки фото: ' + (err.message || String(err)))
+  } finally {
+    uploadingPhoto.value = false
+    if (input) input.value = ''
+  }
 }
 
 async function saveEditPlant() {
@@ -233,7 +260,8 @@ onMounted(loadData)
           class="plant-card garden-bed-card"
           @click="router.push(`/plants/${uPlant.plant_id}`)"
         >
-          <div class="plant-emoji">{{ getPlantObj(uPlant)?.emoji }}</div>
+          <div v-if="uPlant.photo_url" class="plant-photo-thumb" :style="{ backgroundImage: `url(${uPlant.photo_url})` }"></div>
+          <div v-else class="plant-emoji">{{ getPlantObj(uPlant)?.emoji }}</div>
           <div class="plant-info">
             <div class="plant-title-row">
               <span class="plant-name">{{ uPlant.nickname || getPlantObj(uPlant)?.name }}</span>
@@ -288,6 +316,21 @@ onMounted(loadData)
           <button class="close-btn" @click="closeEditModal">✕</button>
         </div>
         <div class="modal-body">
+          <div class="photo-field">
+            <label>Фотография грядки / растения</label>
+            <div class="photo-preview-box" :style="{ backgroundImage: editingPlant.photo_url ? `url(${editingPlant.photo_url})` : 'none' }">
+              <div v-if="!editingPlant.photo_url" class="no-photo-placeholder">
+                <Camera :size="28" />
+                <span>Фото не добавлено</span>
+              </div>
+              <button class="upload-photo-btn" @click="triggerPhotoSelect" :disabled="uploadingPhoto">
+                <UploadCloud :size="18" />
+                <span>{{ uploadingPhoto ? 'Загрузка...' : (editingPlant.photo_url ? 'Заменить фото' : 'Загрузить фото') }}</span>
+              </button>
+            </div>
+            <input type="file" accept="image/*" ref="fileInputRef" style="display:none" @change="onPhotoSelected" />
+          </div>
+
           <div class="field">
             <label>Сорт / Название грядки</label>
             <input v-model="editForm.nickname" class="modal-input" placeholder="Например: Бычье сердце, Черри..." />
@@ -433,6 +476,11 @@ onMounted(loadData)
   &.skeleton-card { height: 64px; background: var(--color-border); opacity: 0.4; cursor: default; }
 }
 .plant-emoji { font-size: 26px; flex-shrink: 0; }
+.plant-photo-thumb {
+  width: 44px; height: 44px; border-radius: var(--radius-sm);
+  background-size: cover; background-position: center; flex-shrink: 0;
+  border: 1px solid var(--color-border);
+}
 .plant-info { flex: 1; min-width: 0; }
 .plant-name { font-size: 15px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 2px; }
 .plant-latin { font-size: 12px; color: var(--color-text-tertiary); font-style: italic; }
@@ -488,6 +536,31 @@ onMounted(loadData)
   .close-btn { background: none; border: none; font-size: 18px; color: var(--color-text-tertiary); cursor: pointer; }
 }
 .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+.photo-field {
+  display: flex; flex-direction: column; gap: 8px;
+  label { font-size: 13px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 2px; }
+  .photo-preview-box {
+    width: 100%; height: 160px; border-radius: var(--radius-md);
+    border: 2px dashed var(--color-primary); background-color: var(--color-background);
+    background-size: cover; background-position: center; display: flex;
+    flex-direction: column; align-items: center; justify-content: center; position: relative;
+    overflow: hidden;
+  }
+  .no-photo-placeholder {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    color: var(--color-text-tertiary); font-size: 13px; margin-bottom: 12px;
+  }
+  .upload-photo-btn {
+    background: rgba(45, 106, 79, 0.9); color: white; padding: 8px 16px; border: none;
+    border-radius: 99px; font-size: 13px; font-weight: 600; display: flex;
+    align-items: center; gap: 8px; cursor: pointer; backdrop-filter: blur(4px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: transform 0.15s;
+    &:hover { transform: scale(1.03); background: var(--color-primary); }
+    &:disabled { opacity: 0.7; cursor: not-allowed; }
+  }
+}
+
 .field {
   label { display: block; font-size: 13px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 6px; }
   .modal-input {

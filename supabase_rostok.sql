@@ -37,6 +37,7 @@ create table if not exists user_plants (
   nickname text,
   planted_at date,
   location_note text,
+  photo_url text,
   created_at timestamptz default now()
 );
 
@@ -66,6 +67,17 @@ create table if not exists user_settings (
   timezone text default 'Europe/Kiev'
 );
 
+-- 6. PLANT SECRETS (секреты хорошего урожая)
+create table if not exists plant_secrets (
+  id uuid primary key default gen_random_uuid(),
+  plant_id uuid references plants(id) on delete cascade,
+  title text not null,
+  description text not null,
+  secret_type text not null,
+  emoji text,
+  created_at timestamptz default now()
+);
+
 -- ============================================
 -- RLS POLICIES
 -- ============================================
@@ -82,12 +94,22 @@ create policy "users see own log" on treatment_log
 create policy "users see own settings" on user_settings
   for all using (auth.uid() = user_id);
 
--- plants и plant_care — публичные (read-only для всех)
+-- plants, plant_care и plant_secrets — публичные (read-only для всех)
 alter table plants enable row level security;
 alter table plant_care enable row level security;
+alter table plant_secrets enable row level security;
 
 create policy "plants are public" on plants for select using (true);
 create policy "plant_care is public" on plant_care for select using (true);
+create policy "plant_secrets is public" on plant_secrets for select using (true);
+
+-- ============================================
+-- STORAGE BUCKETS
+-- ============================================
+insert into storage.buckets (id, name, public) values ('garden_photos', 'garden_photos', true) on conflict (id) do nothing;
+
+create policy "Public photos access" on storage.objects for select using (bucket_id = 'garden_photos');
+create policy "Authenticated users upload photos" on storage.objects for insert with check (bucket_id = 'garden_photos' and auth.role() = 'authenticated');
 
 -- ============================================
 -- SEED: PLANTS

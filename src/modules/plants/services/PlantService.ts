@@ -1,4 +1,5 @@
 import { supabase } from '@/api/supabase'
+import { plantSecretsData } from '../data/plantSecretsData'
 
 export interface Plant {
   id: string
@@ -9,6 +10,15 @@ export interface Plant {
   emoji: string
 }
 
+export interface PlantSecret {
+  id: string
+  plant_id: string
+  title: string
+  description: string
+  secret_type: string
+  emoji: string
+}
+
 export interface UserPlant {
   id: string
   user_id: string
@@ -16,6 +26,7 @@ export interface UserPlant {
   nickname?: string | null
   planted_at?: string | null
   location_note?: string | null
+  photo_url?: string | null
   created_at?: string
   plant?: Plant
 }
@@ -60,6 +71,38 @@ export const PlantService = {
       .eq('plant_id', plantId)
     if (error) throw error
     return data || []
+  },
+
+  async getSecretsForPlant(plantId: string, plantName: string): Promise<PlantSecret[]> {
+    let remoteSecrets: PlantSecret[] = []
+    try {
+      const { data, error } = await supabase
+        .from('plant_secrets')
+        .select('*')
+        .eq('plant_id', plantId)
+      if (!error && data) {
+        remoteSecrets = data
+      }
+    } catch (_) {
+      // Таблица в БД может быть ещё не проинициализирована
+    }
+
+    const local = plantSecretsData[plantName] || []
+    const map = new Map<string, PlantSecret>()
+    
+    local.forEach((item, index) => {
+      map.set(item.title, {
+        ...item,
+        id: `local-${index}`,
+        plant_id: plantId
+      })
+    })
+
+    remoteSecrets.forEach(item => {
+      map.set(item.title, item)
+    })
+
+    return Array.from(map.values())
   },
 
   // Получить рекомендации по текущему месяцу и температуре
@@ -145,5 +188,29 @@ export const PlantService = {
       .single()
     if (error) throw error
     return data
+  },
+
+  async uploadGardenPhoto(file: File, userPlantId: string): Promise<string> {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Необходима авторизация')
+
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${user.id}/${userPlantId}_${Date.now()}.${fileExt}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('garden_photos')
+      .upload(fileName, file, { upsert: true })
+
+    if (uploadError) throw uploadError
+
+    const { data: publicUrlData } = supabase.storage
+      .from('garden_photos')
+      .getPublicUrl(fileName)
+
+    const photoUrl = publicUrlData.publicUrl
+
+    await this.updateUserPlant(userPlantId, { photo_url: photoUrl })
+
+    return photoUrl
   }
 }
