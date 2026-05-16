@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { Search, ChevronRight, Bookmark, BookmarkCheck, Trash2, Plus, Camera, UploadCloud } from 'lucide-vue-next'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { Search, ChevronRight, ChevronLeft, Bookmark, BookmarkCheck, Trash2, Plus, Camera, UploadCloud } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { PlantService, type Plant, type UserPlant } from '@/modules/plants/services/PlantService'
 import { authStore } from '@/modules/auth/store/authStore'
@@ -62,44 +62,40 @@ const savingModal = ref(false)
 const uploadingPhoto = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
-function openEditModal(uPlant: UserPlant, event: Event) {
+function triggerPhotoSelect() {
+  fileInputRef.value?.click()
+}
+
+async function onPhotoSelected(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file || !editingPlant.value) return
+  uploadingPhoto.value = true
+  try {
+    const url = await PlantService.uploadGardenPhoto(file, editingPlant.value.id)
+    if (url) {
+      editingPlant.value.photo_url = url
+      const itemInList = userPlantsList.value.find(u => u.id === editingPlant.value?.id)
+      if (itemInList) itemInList.photo_url = url
+    }
+  } catch (err) {
+    console.error('Ошибка загрузки фото:', err)
+  } finally {
+    uploadingPhoto.value = false
+  }
+}
+
+function openEditModal(u: UserPlant, event: Event) {
   event.stopPropagation()
-  editingPlant.value = uPlant
+  editingPlant.value = { ...u }
   editForm.value = {
-    nickname: uPlant.nickname || '',
-    location_note: uPlant.location_note || '',
-    planted_at: uPlant.planted_at ? uPlant.planted_at.split('T')[0] : ''
+    nickname: u.nickname || '',
+    location_note: u.location_note || '',
+    planted_at: u.planted_at ? u.planted_at.split('T')[0] : ''
   }
 }
 
 function closeEditModal() {
   editingPlant.value = null
-}
-
-async function triggerPhotoSelect() {
-  fileInputRef.value?.click()
-}
-
-async function onPhotoSelected(e: Event) {
-  if (!editingPlant.value) return
-  const input = e.target as HTMLInputElement
-  const file = input.files?.[0]
-  if (!file) return
-
-  uploadingPhoto.value = true
-  try {
-    const newUrl = await PlantService.uploadGardenPhoto(file, editingPlant.value.id)
-    editingPlant.value.photo_url = newUrl
-    const idx = userPlantsList.value.findIndex(u => u.id === editingPlant.value?.id)
-    if (idx !== -1) {
-      userPlantsList.value[idx].photo_url = newUrl
-    }
-  } catch (err: any) {
-    alert('Ошибка загрузки фото: ' + (err.message || String(err)))
-  } finally {
-    uploadingPhoto.value = false
-    if (input) input.value = ''
-  }
 }
 
 async function saveEditPlant() {
@@ -190,7 +186,6 @@ async function toggleGardenCatalog(plant: Plant, event: Event) {
         userPlantsList.value.push(newInst)
       }
     } else {
-      // Удаляем все экземпляры этого растения
       const toDel = userPlantsList.value.filter(u => u.plant_id === plant.id)
       for (const item of toDel) {
         await PlantService.removeUserPlant(item.id)
@@ -216,45 +211,89 @@ function formatDateDisplay(d?: string | null): string {
   }
 }
 
-onMounted(loadData)
+const isScrolled = ref(false)
+function onWindowScroll() {
+  isScrolled.value = window.scrollY > 20
+}
+
+const categoriesScrollRef = ref<HTMLElement | null>(null)
+const showCatLeft = ref(false)
+const showCatRight = ref(false)
+
+function checkCatScroll() {
+  const el = categoriesScrollRef.value
+  if (!el) return
+  showCatLeft.value = el.scrollLeft > 10
+  showCatRight.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 10
+}
+
+function scrollCategoriesBy(amount: number) {
+  const el = categoriesScrollRef.value
+  if (!el) return
+  el.scrollBy({ left: amount, behavior: 'smooth' })
+}
+
+onMounted(() => {
+  loadData()
+  window.addEventListener('scroll', onWindowScroll, { passive: true })
+  setTimeout(checkCatScroll, 100)
+  window.addEventListener('resize', checkCatScroll, { passive: true })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', onWindowScroll)
+  window.removeEventListener('resize', checkCatScroll)
+})
 </script>
 
 <template>
   <div class="plants-view">
-    <div class="page-header">
-      <h1 class="header-title">Растения</h1>
-    </div>
+    <div class="sticky-header-container" :class="{ 'is-scrolled': isScrolled }">
+      <div class="page-header">
+        <h1 class="header-title">Растения</h1>
+      </div>
 
-    <!-- Tabs -->
-    <div class="tabs-wrap">
-      <button
-        class="tab-btn"
-        :class="{ active: activeTab === 'catalog' }"
-        @click="activeTab = 'catalog'"
-      >
-        Каталог
-      </button>
-      <button
-        class="tab-btn"
-        :class="{ active: activeTab === 'garden' }"
-        @click="activeTab = 'garden'"
-      >
-        Мой огород
-        <span v-if="userPlantsList.length" class="badge">{{ userPlantsList.length }}</span>
-      </button>
-    </div>
+      <!-- Tabs -->
+      <div class="tabs-wrap">
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'catalog' }"
+          @click="activeTab = 'catalog'"
+        >
+          Каталог
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'garden' }"
+          @click="activeTab = 'garden'"
+        >
+          Мой огород
+          <span v-if="userPlantsList.length" class="badge">{{ userPlantsList.length }}</span>
+        </button>
+      </div>
 
-    <div class="search-wrap">
-      <Search :size="16" class="search-icon" />
-      <input v-model="search" class="search-input" :placeholder="activeTab === 'garden' ? 'Поиск грядки, сорта, культуры...' : 'Поиск растения...'" />
-    </div>
+      <div class="search-wrap">
+        <Search :size="16" class="search-icon" />
+        <input v-model="search" class="search-input" :placeholder="activeTab === 'garden' ? 'Поиск грядки, сорта, культуры...' : 'Поиск растения...'" />
+      </div>
 
-    <div class="categories-scroll">
-      <button
-        v-for="cat in categories" :key="cat.id"
-        class="cat-btn" :class="{ active: activeCategory === cat.id }"
-        @click="activeCategory = cat.id"
-      >{{ cat.label }}</button>
+      <div class="scroll-container-wrapper" @mouseenter="checkCatScroll">
+        <button v-show="showCatLeft" class="scroll-arrow left" @click="scrollCategoriesBy(-200)" title="Прокрутить влево">
+          <ChevronLeft :size="18" />
+        </button>
+        
+        <div class="categories-scroll" ref="categoriesScrollRef" @scroll="checkCatScroll">
+          <button
+            v-for="cat in categories" :key="cat.id"
+            class="cat-btn" :class="{ active: activeCategory === cat.id }"
+            @click="activeCategory = cat.id"
+          >{{ cat.label }}</button>
+        </div>
+
+        <button v-show="showCatRight" class="scroll-arrow right" @click="scrollCategoriesBy(200)" title="Прокрутить вправо">
+          <ChevronRight :size="18" />
+        </button>
+      </div>
     </div>
 
     <div v-if="loading" class="plants-grid">
@@ -416,6 +455,26 @@ onMounted(loadData)
 
 <style scoped lang="scss">
 .plants-view { padding: 16px 16px 24px; }
+
+/* ── STICKY HEADER ── */
+.sticky-header-container {
+  position: sticky;
+  top: 56px;
+  z-index: 20;
+  background: var(--color-background);
+  padding: 16px 16px 12px;
+  margin: -16px -16px 16px;
+  transition: box-shadow 0.3s, background 0.3s, backdrop-filter 0.3s;
+
+  &.is-scrolled {
+    background: rgba(18, 26, 22, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+
 .page-header { margin-bottom: 16px; }
 .header-title { font-size: 24px; font-weight: 700; color: var(--color-text-primary); margin: 0; }
 
@@ -468,15 +527,51 @@ onMounted(loadData)
   }
 }
 
+/* ── HORIZONTAL CATEGORIES SCROLL ── */
+.scroll-container-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.scroll-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s;
+
+  &:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  &.left { left: -4px; }
+  &.right { right: -4px; }
+}
+
 .categories-scroll {
-  display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px;
+  display: flex; gap: 8px; overflow-x: auto; scroll-behavior: smooth; padding: 4px 0; width: 100%;
   scrollbar-width: none; &::-webkit-scrollbar { display: none; }
 }
 .cat-btn {
   flex-shrink: 0; padding: 6px 14px; border-radius: var(--radius-pill);
   border: 1px solid var(--color-border); background: var(--color-surface);
-  font-size: 13px; color: var(--color-text-secondary); cursor: pointer;
-  &.active { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); }
+  font-size: 13px; color: var(--color-text-secondary); cursor: pointer; transition: all 0.15s;
+  &.active { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); font-weight: 600; }
+  &:hover:not(.active) { border-color: var(--color-primary-subtle, rgba(45,106,79,0.4)); background: var(--color-surface-hover); color: var(--color-text-primary); }
 }
 
 .count-label { font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 12px; }

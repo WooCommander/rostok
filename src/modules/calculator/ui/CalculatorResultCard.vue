@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Droplets, Scale, AlertCircle, Utensils, Award } from 'lucide-vue-next'
+import { Droplets, Scale, AlertCircle, Utensils, Award, BookPlus } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 import type { CalculationResult, FertilizerMeta } from '../services/CalculatorService'
 
 interface Props {
@@ -8,6 +9,14 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const router = useRouter()
+
+function logTreatment() {
+  const p = encodeURIComponent(props.fertilizer.name)
+  const d = encodeURIComponent(`${props.result.fertilizerAmountGrams}г на ${props.result.waterAmountLiters}л воды`)
+  const n = encodeURIComponent(`Расчет по агрокалькулятору. ${props.result.tips}`)
+  router.push(`/journal/add?care_type=fertilizing&product=${p}&dose=${d}&note=${n}`)
+}
 </script>
 
 <template>
@@ -55,6 +64,13 @@ const props = defineProps<Props>()
         <span>Регламент и совет агронома</span>
       </div>
       <p class="tips-text">{{ props.result.tips }}</p>
+    </div>
+
+    <div class="actions-box">
+      <button class="log-btn" @click="logTreatment">
+        <BookPlus :size="18" />
+        Записать в журнал ухода
+      </button>
     </div>
   </div>
 </template>
@@ -213,5 +229,33 @@ const props = defineProps<Props>()
   font-size: 14px;
   line-height: 1.5;
   color: var(--color-text-primary);
+}
+
+.actions-box {
+  margin-top: 8px;
+}
+
+.log-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 20px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    background: color-mix(in srgb, var(--color-primary) 90%, white);
+  }
 }
 </style>

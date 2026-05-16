@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, Check } from 'lucide-vue-next'
 import { PlantService, type Plant, type UserPlant } from '@/modules/plants/services/PlantService'
 import { JournalService } from '@/modules/journal/services/JournalService'
 import { WeatherService } from '@/modules/weather/services/WeatherService'
 
 const router = useRouter()
+const route = useRoute()
 
 const plants = ref<Plant[]>([])
 const userPlantsList = ref<UserPlant[]>([])
@@ -36,6 +37,11 @@ const types = [
 ]
 
 onMounted(async () => {
+  if (route.query.care_type) form.value.type = String(route.query.care_type)
+  if (route.query.product) form.value.product = String(route.query.product)
+  if (route.query.dose) form.value.dose = String(route.query.dose)
+  if (route.query.note) form.value.note = String(route.query.note)
+
   try {
     const [allPlants, myPlants] = await Promise.all([
       PlantService.getAll(),
@@ -43,6 +49,11 @@ onMounted(async () => {
     ])
     plants.value = allPlants
     userPlantsList.value = myPlants
+    
+    // Если есть грядки в саду, можно автоматически выбрать первую для удобства
+    if (myPlants.length > 0 && !form.value.selected_id) {
+      form.value.selected_id = 'u_' + myPlants[0].id
+    }
   } catch (e) {
     console.error(e)
   }

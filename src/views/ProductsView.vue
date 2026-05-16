@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, X } from 'lucide-vue-next'
+import { Search, X, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { ProductService, type ProductItem, ProductCard } from '@/modules/products'
 
 const router = useRouter()
@@ -49,45 +49,87 @@ function goToProduct(p: ProductItem) {
   router.push(`/products/${p.id}`)
 }
 
+const isScrolled = ref(false)
+function onWindowScroll() {
+  isScrolled.value = window.scrollY > 20
+}
+
+const catTabsRef = ref<HTMLElement | null>(null)
+const showCatLeft = ref(false)
+const showCatRight = ref(false)
+
+function checkCatScroll() {
+  const el = catTabsRef.value
+  if (!el) return
+  showCatLeft.value = el.scrollLeft > 10
+  showCatRight.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 10
+}
+
+function scrollCatsBy(amount: number) {
+  const el = catTabsRef.value
+  if (!el) return
+  el.scrollBy({ left: amount, behavior: 'smooth' })
+}
+
 onMounted(() => {
   loadProducts()
+  window.addEventListener('scroll', onWindowScroll, { passive: true })
+  setTimeout(checkCatScroll, 100)
+  window.addEventListener('resize', checkCatScroll, { passive: true })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', onWindowScroll)
+  window.removeEventListener('resize', checkCatScroll)
 })
 </script>
 
 <template>
   <div class="products-view">
-    <div class="page-header">
-      <h1 class="title">Справочник препаратов</h1>
-      <p class="subtitle">Описание, составы, дозировки и сроки ожидания</p>
-    </div>
-
-    <div class="search-wrap">
-      <div class="search-box">
-        <Search class="search-icon" :size="20" />
-        <input
-          :value="searchQuery"
-          @input="onSearchInput"
-          placeholder="Поиск по названию или составу..."
-          class="search-input"
-        />
-        <button v-if="searchQuery" class="clear-btn" @click="clearSearch">
-          <X :size="18" />
-        </button>
+    <div class="sticky-header-container" :class="{ 'is-scrolled': isScrolled }">
+      <div class="page-header">
+        <h1 class="title">Справочник препаратов</h1>
+        <p class="subtitle">Описание, составы, дозировки и сроки ожидания</p>
       </div>
-    </div>
 
-    <!-- Category Tabs -->
-    <div class="cat-tabs-wrap">
-      <div class="cat-tabs">
-        <button
-          v-for="cat in CATEGORIES"
-          :key="cat.id"
-          class="cat-tab"
-          :class="{ active: selectedCategory === cat.id }"
-          @click="selectCat(cat.id)"
-        >
-          <span class="cat-icon">{{ cat.icon }}</span>
-          <span class="cat-label">{{ cat.label }}</span>
+      <div class="search-wrap">
+        <div class="search-box">
+          <Search class="search-icon" :size="20" />
+          <input
+            :value="searchQuery"
+            @input="onSearchInput"
+            placeholder="Поиск по названию или составу..."
+            class="search-input"
+          />
+          <button v-if="searchQuery" class="clear-btn" @click="clearSearch">
+            <X :size="18" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Category Tabs -->
+      <div class="scroll-container-wrapper" @mouseenter="checkCatScroll">
+        <button v-show="showCatLeft" class="scroll-arrow left" @click="scrollCatsBy(-200)" title="Прокрутить влево">
+          <ChevronLeft :size="18" />
+        </button>
+
+        <div class="cat-tabs-wrap" ref="catTabsRef" @scroll="checkCatScroll">
+          <div class="cat-tabs">
+            <button
+              v-for="cat in CATEGORIES"
+              :key="cat.id"
+              class="cat-tab"
+              :class="{ active: selectedCategory === cat.id }"
+              @click="selectCat(cat.id)"
+            >
+              <span class="cat-icon">{{ cat.icon }}</span>
+              <span class="cat-label">{{ cat.label }}</span>
+            </button>
+          </div>
+        </div>
+
+        <button v-show="showCatRight" class="scroll-arrow right" @click="scrollCatsBy(200)" title="Прокрутить вправо">
+          <ChevronRight :size="18" />
         </button>
       </div>
     </div>
@@ -129,8 +171,27 @@ onMounted(() => {
   margin: 0 auto;
 }
 
+/* ── STICKY HEADER ── */
+.sticky-header-container {
+  position: sticky;
+  top: 56px;
+  z-index: 20;
+  background: var(--color-background);
+  padding: 16px 16px 12px;
+  margin: -16px -16px 24px;
+  transition: box-shadow 0.3s, background 0.3s, backdrop-filter 0.3s;
+
+  &.is-scrolled {
+    background: rgba(18, 26, 22, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   text-align: center;
 
   .title {
@@ -148,7 +209,7 @@ onMounted(() => {
 
 /* ── SEARCH ── */
 .search-wrap {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .search-box {
@@ -203,11 +264,46 @@ onMounted(() => {
   }
 }
 
-/* ── CATEGORY TABS ── */
+/* ── HORIZONTAL CATEGORIES SCROLL ── */
+.scroll-container-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.scroll-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s;
+
+  &:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  &.left { left: -4px; }
+  &.right { right: -4px; }
+}
+
 .cat-tabs-wrap {
   overflow-x: auto;
-  margin-bottom: 28px;
-  padding-bottom: 4px;
+  scroll-behavior: smooth;
+  padding: 4px 0;
+  width: 100%;
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
 }
