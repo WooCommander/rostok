@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Sparkles, Share2, RefreshCw, Check, X, CheckCircle2 } from 'lucide-vue-next'
+import { Bookmark, BookmarkCheck, Sparkles, Share2, RefreshCw, Check, X, CheckCircle2 } from 'lucide-vue-next'
 import type { TipUiModel } from '../adapters/TipsAdapter'
+import { useTipsState } from '../state/useTipsState'
 
 interface Props {
   tip: TipUiModel
@@ -15,6 +16,7 @@ const emit = defineEmits<{
 }>()
 
 const copied = ref(false)
+const { isSaved, toggleSaveTip } = useTipsState()
 
 async function shareTip() {
   const bulletsText = props.tip.bullets?.map(b => `• ${b}`).join('\n') || ''
@@ -59,7 +61,18 @@ function close() {
             <Sparkles :size="14" class="sparkle-icon" />
             <span>{{ props.tip.categoryBadge }}</span>
           </div>
-          <span class="header-author">{{ props.tip.author }}</span>
+          <div class="header-right">
+            <span class="header-author">{{ props.tip.author }}</span>
+            <button
+              class="bookmark-btn"
+              :class="{ saved: isSaved(props.tip.id) }"
+              @click="toggleSaveTip(props.tip.id)"
+              :title="isSaved(props.tip.id) ? 'Убрать из сохранённых' : 'Сохранить совет'"
+            >
+              <BookmarkCheck v-if="isSaved(props.tip.id)" :size="20" />
+              <Bookmark v-else :size="20" />
+            </button>
+          </div>
         </div>
 
         <!-- Контент -->
@@ -191,10 +204,38 @@ function close() {
   letter-spacing: 0.05em;
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .header-author {
   font-size: 13px;
   color: var(--color-text-tertiary);
   font-weight: 600;
+}
+
+.bookmark-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+
+  &:hover {
+    color: var(--color-primary);
+    transform: scale(1.1);
+  }
+
+  &.saved {
+    color: var(--color-primary);
+  }
 }
 
 .modal-body {

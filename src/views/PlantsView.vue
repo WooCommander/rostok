@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Search, ChevronRight, ChevronLeft, Bookmark, BookmarkCheck, Trash2, Plus, Camera, UploadCloud } from 'lucide-vue-next'
+import { Search, ChevronRight, ChevronLeft, Bookmark, BookmarkCheck, Trash2, Plus, Camera, UploadCloud, SlidersHorizontal, RotateCcw } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { PlantService, type Plant, type UserPlant } from '@/modules/plants/services/PlantService'
 import { authStore } from '@/modules/auth/store/authStore'
@@ -13,6 +13,46 @@ const activeTab = ref<'catalog' | 'garden'>('catalog')
 const plants = ref<Plant[]>([])
 const userPlantsList = ref<UserPlant[]>([])
 const loading = ref(true)
+
+// Filters
+const activeDifficulty = ref('all')
+const activeSun = ref('all')
+const activeWater = ref('all')
+const showFilters = ref(false)
+
+const filterOptions = {
+  difficulty: [
+    { id: 'all', label: 'Любая сложность' },
+    { id: 'easy', label: '🟢 Легко' },
+    { id: 'medium', label: '🟡 Средне' },
+    { id: 'hard', label: '🔴 Сложно' }
+  ],
+  sun: [
+    { id: 'all', label: 'Любой свет' },
+    { id: 'Солнце', label: '☀️ Солнце' },
+    { id: 'Полутень', label: '⛅ Полутень' }
+  ],
+  water: [
+    { id: 'all', label: 'Любой полив' },
+    { id: 'Умеренный', label: '💧 Умеренный' },
+    { id: 'Влаголюбивое', label: '💧 Влаголюбивое' },
+    { id: 'Засухоустойчивое', label: '🌵 Засухоустойчивое' }
+  ]
+}
+
+const activeFilterCount = computed(() => {
+  let count = 0
+  if (activeDifficulty.value !== 'all') count++
+  if (activeSun.value !== 'all') count++
+  if (activeWater.value !== 'all') count++
+  return count
+})
+
+function resetFilters() {
+  activeDifficulty.value = 'all'
+  activeSun.value = 'all'
+  activeWater.value = 'all'
+}
 
 const categories = [
   { id: 'all', label: 'Все' },
@@ -33,8 +73,11 @@ const userPlantIds = computed(() => userPlantsList.value.map(u => u.plant_id))
 const filteredCatalog = computed(() => {
   return plants.value.filter(p => {
     const matchCat = activeCategory.value === 'all' || p.category === activeCategory.value
+    const matchDiff = activeDifficulty.value === 'all' || p.difficulty === activeDifficulty.value
+    const matchSun = activeSun.value === 'all' || (p.sun && p.sun.includes(activeSun.value))
+    const matchWater = activeWater.value === 'all' || (p.water && p.water.includes(activeWater.value))
     const matchSearch = !search.value || p.name.toLowerCase().includes(search.value.toLowerCase())
-    return matchCat && matchSearch
+    return matchCat && matchDiff && matchSun && matchWater && matchSearch
   })
 })
 
@@ -280,6 +323,16 @@ onUnmounted(() => {
       <div class="search-wrap">
         <Search :size="16" class="search-icon" />
         <input v-model="search" class="search-input" :placeholder="activeTab === 'garden' ? 'Поиск грядки, сорта, культуры...' : 'Поиск растения...'" />
+        <button
+          v-if="activeTab === 'catalog'"
+          class="filter-toggle-btn"
+          :class="{ active: showFilters || activeFilterCount > 0 }"
+          @click="showFilters = !showFilters"
+          title="Фильтры по условиям"
+        >
+          <SlidersHorizontal :size="16" />
+          <span v-if="activeFilterCount > 0" class="filter-count-badge">{{ activeFilterCount }}</span>
+        </button>
       </div>
 
       <div class="scroll-container-wrapper" @mouseenter="checkCatScroll">
@@ -299,6 +352,53 @@ onUnmounted(() => {
           <ChevronRight :size="18" />
         </button>
       </div>
+
+      <!-- Расширенные фильтры -->
+      <Transition name="filters-slide">
+        <div v-if="showFilters && activeTab === 'catalog'" class="advanced-filters-box">
+          <div class="filter-header">
+            <span class="filter-box-title">Условия выращивания</span>
+            <button v-if="activeFilterCount > 0" class="reset-filters-btn" @click="resetFilters">
+              <RotateCcw :size="14" /> Сбросить
+            </button>
+          </div>
+
+          <div class="filter-rows">
+            <div class="filter-row">
+              <span class="filter-label">Сложность</span>
+              <div class="filter-pills">
+                <button
+                  v-for="opt in filterOptions.difficulty" :key="opt.id"
+                  class="filter-pill" :class="{ active: activeDifficulty === opt.id }"
+                  @click="activeDifficulty = opt.id"
+                >{{ opt.label }}</button>
+              </div>
+            </div>
+
+            <div class="filter-row">
+              <span class="filter-label">Освещение</span>
+              <div class="filter-pills">
+                <button
+                  v-for="opt in filterOptions.sun" :key="opt.id"
+                  class="filter-pill" :class="{ active: activeSun === opt.id }"
+                  @click="activeSun = opt.id"
+                >{{ opt.label }}</button>
+              </div>
+            </div>
+
+            <div class="filter-row">
+              <span class="filter-label">Полив</span>
+              <div class="filter-pills">
+                <button
+                  v-for="opt in filterOptions.water" :key="opt.id"
+                  class="filter-pill" :class="{ active: activeWater === opt.id }"
+                  @click="activeWater = opt.id"
+                >{{ opt.label }}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </div>
 
     <div v-if="loading" class="plants-grid">
@@ -544,15 +644,166 @@ onUnmounted(() => {
 }
 
 .search-wrap {
-  position: relative; margin-bottom: 14px;
-  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--color-text-tertiary); }
+  position: relative;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--color-text-tertiary); z-index: 2; }
   .search-input {
-    width: 100%; padding: 10px 12px 10px 36px;
+    flex: 1; padding: 10px 12px 10px 36px;
     border: 1px solid var(--color-border); border-radius: var(--radius-md);
     background: var(--color-surface); font-size: 14px; color: var(--color-text-primary);
-    outline: none; box-sizing: border-box;
+    outline: none; box-sizing: border-box; width: 100%;
     &:focus { border-color: var(--color-primary); }
   }
+
+  .filter-toggle-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+
+    &:hover {
+      background: var(--color-surface-hover);
+      color: var(--color-primary);
+      border-color: var(--color-primary);
+    }
+
+    &.active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+
+    .filter-count-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #E76F51;
+      color: white;
+      font-size: 10px;
+      font-weight: 800;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+  }
+}
+
+/* ── ADVANCED FILTERS BOX ── */
+.advanced-filters-box {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: var(--shadow-md);
+}
+
+.filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .filter-box-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary);
+  }
+
+  .reset-filters-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: none;
+    color: var(--color-error);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+
+    &:hover { background: color-mix(in srgb, var(--color-error) 10%, transparent); }
+  }
+}
+
+.filter-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .filter-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-tertiary);
+  }
+
+  .filter-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .filter-pill {
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--color-border);
+    background: var(--color-background);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &:hover:not(.active) {
+      background: var(--color-surface-hover);
+      color: var(--color-text-primary);
+      border-color: var(--color-primary-subtle, rgba(45,106,79,0.4));
+    }
+
+    &.active {
+      background: var(--color-primary);
+      color: var(--color-on-primary);
+      border-color: var(--color-primary);
+    }
+  }
+}
+
+.filters-slide-enter-active,
+.filters-slide-leave-active {
+  transition: all 0.25s ease-out;
+}
+.filters-slide-enter-from,
+.filters-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 
 /* ── HORIZONTAL CATEGORIES SCROLL ── */

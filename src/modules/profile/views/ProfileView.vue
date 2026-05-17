@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { LogOut, MapPin, Thermometer, ChevronRight, Sun, Moon, FileText, RefreshCw } from 'lucide-vue-next'
+import { LogOut, MapPin, Thermometer, ChevronRight, Sun, Moon, FileText, RefreshCw, Bookmark } from 'lucide-vue-next'
 import { authStore } from '@/modules/auth/store/authStore'
 import { useTheme } from '@/composables/useTheme'
 import { supabase } from '@/api/supabase'
 import { WeatherService } from '@/modules/weather/services/WeatherService'
 import { changelog } from '@/data/changelog'
+import { useTipsState, TipOfTheDayModal } from '@/modules/tips'
+import type { TipUiModel } from '@/modules/tips/adapters/TipsAdapter'
 
 const router = useRouter()
 const { isDark, toggleTheme } = useTheme()
@@ -25,6 +27,11 @@ const gpsLoading = ref(false)
 
 // Stats
 const treatmentCount = ref(0)
+
+// Saved Tips
+const { getSavedTips } = useTipsState()
+const savedTips = computed(() => getSavedTips())
+const selectedTip = ref<TipUiModel | null>(null)
 
 onMounted(async () => {
   await loadSettings()
@@ -97,6 +104,24 @@ async function logout() {
       <div class="user-info">
         <div class="user-email">{{ user?.email || 'Гость' }}</div>
         <div class="user-stat">{{ treatmentCount }} записей в журнале</div>
+      </div>
+    </div>
+
+    <!-- Сохранённые советы -->
+    <div class="section" v-if="savedTips.length > 0">
+      <div class="section-title">
+        <Bookmark :size="14" style="margin-right: 4px; display: inline-block; vertical-align: middle;" />
+        Сохранённые советы ({{ savedTips.length }})
+      </div>
+      <div class="saved-tips-grid">
+        <div v-for="tip in savedTips" :key="tip.id" class="saved-tip-card" @click="selectedTip = tip">
+          <span class="tip-emoji">{{ tip.emoji }}</span>
+          <div class="tip-info">
+            <div class="tip-cat">{{ tip.categoryBadge }}</div>
+            <div class="tip-title">{{ tip.title }}</div>
+          </div>
+          <ChevronRight :size="16" class="chevron" />
+        </div>
       </div>
     </div>
 
@@ -199,6 +224,15 @@ async function logout() {
       <LogOut :size="18" />
       Выйти
     </button>
+
+    <!-- Модальное окно просмотра совета -->
+    <TipOfTheDayModal
+      v-if="selectedTip"
+      :tip="selectedTip"
+      :model-value="!!selectedTip"
+      @update:model-value="selectedTip = null"
+      @next="selectedTip = null"
+    />
 
   </div>
 </template>
@@ -367,5 +401,69 @@ async function logout() {
   cursor: pointer;
   margin-top: 4px;
   &:hover { background: color-mix(in srgb, var(--color-error) 5%, transparent); }
+}
+
+/* ── SAVED TIPS CARDS ── */
+.saved-tips-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.saved-tip-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: var(--color-primary);
+    background: var(--color-surface-hover);
+
+    .chevron { transform: translateX(2px); color: var(--color-primary); }
+  }
+}
+
+.tip-emoji {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tip-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tip-cat {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tip-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>
