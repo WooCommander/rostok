@@ -88,8 +88,8 @@ onUnmounted(() => {
   <div class="products-view">
     <div class="sticky-header-container" :class="{ 'is-scrolled': isScrolled }">
       <div class="page-header">
-        <h1 class="title">Справочник препаратов</h1>
-        <p class="subtitle">Описание, составы, дозировки и сроки ожидания</p>
+        <h1 class="header-title">Справочник препаратов</h1>
+        <p class="header-sub">Описание, составы, дозировки и сроки ожидания</p>
       </div>
 
       <div class="search-wrap">
@@ -191,17 +191,17 @@ onUnmounted(() => {
 }
 
 .page-header {
-  margin-bottom: 20px;
-  text-align: center;
+  margin-bottom: 16px;
+  text-align: left;
 
-  .title {
-    font-size: 28px;
-    font-weight: 800;
+  .header-title {
+    font-size: 24px;
+    font-weight: 700;
     color: var(--color-text-primary);
-    margin: 0 0 8px;
+    margin: 0 0 4px;
   }
-  .subtitle {
-    font-size: 15px;
+  .header-sub {
+    font-size: 14px;
     color: var(--color-text-secondary);
     margin: 0;
   }

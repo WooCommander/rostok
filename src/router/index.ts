@@ -46,9 +46,9 @@ const routes = [
         component: () => import('@/views/DesignSystemView.vue')
     },
     {
-        path: '/changelog',
-        name: 'Changelog',
-        component: () => import('@/views/ChangelogView.vue')
+        path: '/about',
+        name: 'About',
+        component: () => import('@/views/AboutView.vue')
     },
     {
         path: '/products',
