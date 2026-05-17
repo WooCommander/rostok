@@ -1,5 +1,6 @@
 import { supabase } from '@/api/supabase'
 import { plantSecretsData } from '../data/plantSecretsData'
+import { SEED_PLANTS, SEED_CARE } from '../data/plantsSeedData'
 
 export interface Plant {
   id: string
@@ -46,31 +47,56 @@ export interface PlantCare {
 
 export const PlantService = {
   async getAll(): Promise<Plant[]> {
-    const { data, error } = await supabase
-      .from('plants')
-      .select('*')
-      .order('name')
-    if (error) throw error
-    return data || []
+    let remotePlants: Plant[] = []
+    try {
+      const { data, error } = await supabase
+        .from('plants')
+        .select('*')
+        .order('name')
+      if (!error && data) {
+        remotePlants = data
+      }
+    } catch (_) {}
+
+    const map = new Map<string, Plant>()
+    SEED_PLANTS.forEach(p => map.set(p.name, p))
+    remotePlants.forEach(p => map.set(p.name, p))
+
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name))
   },
 
   async getById(id: string): Promise<Plant | null> {
-    const { data, error } = await supabase
-      .from('plants')
-      .select('*')
-      .eq('id', id)
-      .single()
-    if (error) throw error
-    return data
+    if (id.startsWith('seed-')) {
+      return SEED_PLANTS.find(p => p.id === id) || null
+    }
+    try {
+      const { data, error } = await supabase
+        .from('plants')
+        .select('*')
+        .eq('id', id)
+        .single()
+      if (!error && data) return data
+    } catch (_) {}
+
+    return SEED_PLANTS.find(p => p.id === id || p.name === id) || null
   },
 
   async getCareForPlant(plantId: string): Promise<PlantCare[]> {
-    const { data, error } = await supabase
-      .from('plant_care')
-      .select('*')
-      .eq('plant_id', plantId)
-    if (error) throw error
-    return data || []
+    let remoteCare: PlantCare[] = []
+    if (!plantId.startsWith('seed-')) {
+      try {
+        const { data, error } = await supabase
+          .from('plant_care')
+          .select('*')
+          .eq('plant_id', plantId)
+        if (!error && data) {
+          remoteCare = data
+        }
+      } catch (_) {}
+    }
+
+    if (remoteCare.length > 0) return remoteCare
+    return SEED_CARE.filter(c => c.plant_id === plantId)
   },
 
   async getSecretsForPlant(plantId: string, plantName: string): Promise<PlantSecret[]> {
@@ -107,15 +133,46 @@ export const PlantService = {
 
   // Получить рекомендации по текущему месяцу и температуре
   async getRecommendations(month: number, temp: number): Promise<(PlantCare & { plant: Plant })[]> {
-    const { data, error } = await supabase
-      .from('plant_care')
-      .select('*, plant:plants(*)')
-      .lte('month_from', month)
-      .gte('month_to', month)
-      .or(`temp_min.is.null,temp_min.lte.${temp}`)
-      .or(`temp_max.is.null,temp_max.gte.${temp}`)
-    if (error) throw error
-    return data || []
+    let remote: (PlantCare & { plant: Plant })[] = []
+    try {
+      const { data, error } = await supabase
+        .from('plant_care')
+        .select('*, plant:plants(*)')
+        .lte('month_from', month)
+        .gte('month_to', month)
+        .or(`temp_min.is.null,temp_min.lte.${temp}`)
+        .or(`temp_max.is.null,temp_max.gte.${temp}`)
+      if (!error && data) {
+        remote = data
+      }
+    } catch (_) {}
+
+    const localCare = SEED_CARE.filter(c => {
+      const inMonth = month >= c.month_from && month <= c.month_to
+      const inTempMin = c.temp_min === null || temp >= c.temp_min
+      const inTempMax = c.temp_max === null || temp <= c.temp_max
+      return inMonth && inTempMin && inTempMax
+    })
+
+    const localWithPlants = localCare.map(c => {
+      const plant = SEED_PLANTS.find(p => p.id === c.plant_id) || {
+        id: c.plant_id,
+        name: 'Растение',
+        latin_name: '',
+        category: 'vegetable' as const,
+        emoji: '🌱',
+        description: ''
+      }
+      return { ...c, plant }
+    })
+
+    const all = [...remote, ...localWithPlants]
+    const map = new Map<string, PlantCare & { plant: Plant }>()
+    all.forEach(item => {
+      map.set(`${item.plant?.name}-${item.description}`, item)
+    })
+
+    return Array.from(map.values())
   },
 
   async getUserPlants(): Promise<UserPlant[]> {
@@ -126,7 +183,17 @@ export const PlantService = {
       .select('*, plant:plants(*)')
       .eq('user_id', user.id)
     if (error) throw error
-    return data || []
+    
+    const list = data || []
+    return list.map(item => {
+      if (!item.plant) {
+        const seedPlant = SEED_PLANTS.find(p => p.id === item.plant_id || p.name === item.plant_id)
+        if (seedPlant) {
+          return { ...item, plant: seedPlant }
+        }
+      }
+      return item
+    })
   },
 
   async toggleUserPlant(plantId: string): Promise<boolean> {
