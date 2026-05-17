@@ -153,4 +153,22 @@ const { error: vErr } = await supabase.storage
 if (vErr) { console.error('❌  version.json upload failed:', vErr.message); process.exit(1) }
 
 console.log(`✓  version.json updated → v${version}`)
+
+// ── Insert/Update in app_versions table ──────────────────────────────────────
+console.log('\n🗄️   Updating app_versions table in database...')
+const { error: dbErr } = await supabase
+    .from('app_versions')
+    .insert({
+        version,
+        release_notes: releaseNotes,
+        download_url: apkUrl,
+        is_mandatory: false
+    })
+
+if (dbErr) {
+    console.warn('⚠️   Could not insert into app_versions table (might already exist or permission issue):', dbErr.message)
+} else {
+    console.log(`✓  Database app_versions updated → v${version}`)
+}
+
 console.log(`\n🚀  Done! APK: ${apkUrl}`)

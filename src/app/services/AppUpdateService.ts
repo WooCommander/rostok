@@ -1,4 +1,3 @@
-import { supabase } from '@/api/supabase'
 import { useNotify } from '@/composables/useNotify'
 import { FpHaptics } from '@/shared/lib/haptics'
 
@@ -17,27 +16,36 @@ export class AppUpdateService {
    */
   static async checkForUpdates(currentVersion: string = '1.0.0'): Promise<AppUpdateMeta | null> {
     try {
-      // Ищем последнюю запись в таблице app_versions
-      const { data, error } = await supabase
-        .from('app_versions')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (error) {
-        console.warn('Проверка обновлений пропущена (таблица app_versions не найдена или недоступна):', error.message)
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      if (!supabaseUrl) {
+        console.warn('VITE_SUPABASE_URL не задан')
         return null
       }
 
-      const updateData = data as unknown as AppUpdateMeta | null
+      const url = `${supabaseUrl}/storage/v1/object/public/releases/version.json?t=${Date.now()}`
+      const res = await fetch(url)
+      if (!res.ok) {
+        console.warn('Не удалось загрузить manifest version.json из Supabase Storage')
+        return null
+      }
 
-      if (updateData && updateData.version && this.isNewerVersion(currentVersion, updateData.version)) {
+      const data = await res.json()
+      if (!data || !data.version) {
+        return null
+      }
+
+      const updateData: AppUpdateMeta = {
+        version: data.version,
+        release_notes: data.notes,
+        download_url: data.apkUrl
+      }
+
+      if (this.isNewerVersion(currentVersion, updateData.version)) {
         const { notify } = useNotify()
         FpHaptics.success()
         
         notify(
-          `🚀 Доступна версия ${updateData.version}! ${updateData.release_notes || 'Установлена новая версия с улучшениями.'}`,
+          `🚀 Доступна версия ${updateData.version}! ${updateData.release_notes ? updateData.release_notes.split('\n')[0] : 'Установлена новая версия с улучшениями.'}`,
           'success',
           10000
         )
@@ -46,7 +54,32 @@ export class AppUpdateService {
 
       return null
     } catch (e: unknown) {
-      console.warn('Ошибка при проверке обновлений в Supabase:', (e as Error).message || e)
+      console.warn('Ошибка при проверке обновлений в Supabase Storage:', (e as Error).message || e)
+      return null
+    }
+  }
+
+  /**
+   * Получает последнюю версию из Supabase Storage напрямую без проверки новизны
+   */
+  static async getLatestRelease(): Promise<AppUpdateMeta | null> {
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      if (!supabaseUrl) return null
+
+      const url = `${supabaseUrl}/storage/v1/object/public/releases/version.json?t=${Date.now()}`
+      const res = await fetch(url)
+      if (!res.ok) return null
+
+      const data = await res.json()
+      if (!data || !data.version) return null
+
+      return {
+        version: data.version,
+        release_notes: data.notes,
+        download_url: data.apkUrl
+      }
+    } catch {
       return null
     }
   }
@@ -54,7 +87,7 @@ export class AppUpdateService {
   /**
    * Сравнивает две семантические версии (например, '1.0.0' и '1.0.1')
    */
-  private static isNewerVersion(current: string, remote: string): boolean {
+  static isNewerVersion(current: string, remote: string): boolean {
     const currParts = current.split('.').map(Number)
     const remoteParts = remote.split('.').map(Number)
 

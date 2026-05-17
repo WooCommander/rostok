@@ -22,12 +22,18 @@ const showUpdateModal = ref(false)
 async function onCheckUpdates() {
   isChecking.value = true
   try {
-    const meta = await AppUpdateService.checkForUpdates(currentVersion)
-    if (meta) {
-      updateMeta.value = meta
+    const latest = await AppUpdateService.getLatestRelease()
+    if (latest) {
+      updateMeta.value = latest
       showUpdateModal.value = true
+
+      if (AppUpdateService.isNewerVersion(currentVersion, latest.version)) {
+        notify(`🚀 Доступна новая версия ${latest.version}!`, 'success')
+      } else {
+        notify(`У вас установлена самая актуальная версия (${latest.version}).`, 'success')
+      }
     } else {
-      notify('У вас установлена самая актуальная версия!', 'success')
+      notify('Не удалось получить данные о последней версии из облака', 'error')
     }
   } catch (e) {
     notify('Не удалось проверить обновления', 'error')
