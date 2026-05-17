@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Sun, Droplets, ChevronRight, RefreshCw, Calculator, ShieldAlert } from 'lucide-vue-next'
+import { Sun, Droplets, ChevronRight, RefreshCw, Calculator, ShieldAlert, Sparkles } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { WeatherService, type WeatherData } from '@/modules/weather/services/WeatherService'
 import { PlantService, type PlantCare, type Plant } from '@/modules/plants/services/PlantService'
 import { useReminderState, ReminderNotificationCard } from '@/modules/reminders'
+import { useTipsState, TipOfTheDayCard } from '@/modules/tips'
 
 const router = useRouter()
 
@@ -71,6 +72,7 @@ async function loadRecommendations() {
 }
 
 const { activeReminders, loadForToday, completeReminder, dismissReminder } = useReminderState()
+const { currentTip, nextTip } = useTipsState()
 
 function onCompleteReminder(id: string, raw: any) {
   completeReminder(id)
@@ -155,6 +157,15 @@ onMounted(() => {
         <ChevronRight :size="18" class="banner-arrow" />
       </div>
     </div>
+
+    <!-- Агрономический совет дня -->
+    <section class="section tip-section">
+      <div class="section-title">
+        <Sparkles :size="16" />
+        Совет дня от агронома
+      </div>
+      <TipOfTheDayCard :tip="currentTip" @next="nextTip" />
+    </section>
 
     <!-- Recommendations -->
     <section class="section">
