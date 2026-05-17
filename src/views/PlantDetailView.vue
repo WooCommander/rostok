@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Plus, Bookmark, BookmarkCheck, Sparkles } from 'lucide-vue-next'
+import { ArrowLeft, Plus, Bookmark, BookmarkCheck, Sparkles, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { PlantService, type Plant, type PlantCare, type PlantSecret } from '@/modules/plants/services/PlantService'
 import { authStore } from '@/modules/auth/store/authStore'
 
@@ -16,6 +16,8 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const inGarden = ref(false)
 const isScrolled = ref(false)
+
+const allPlants = ref<Plant[]>([])
 
 // Месяцы по-русски
 const MONTHS = ['', 'янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
@@ -60,17 +62,21 @@ function onScroll() {
   isScrolled.value = window.scrollY > 30
 }
 
-onMounted(async () => {
-  window.addEventListener('scroll', onScroll, { passive: true })
-  const id = route.params.id as string
+async function loadPlantData(id: string, isRefresh = false) {
+  if (!isRefresh) {
+    loading.value = true
+  }
+  error.value = null
   try {
-    const [plantData, careData, myPlants] = await Promise.all([
+    const [plantData, careData, myPlants, allList] = await Promise.all([
       PlantService.getById(id),
       PlantService.getCareForPlant(id),
-      PlantService.getUserPlants()
+      PlantService.getUserPlants(),
+      PlantService.getAll()
     ])
     plant.value = plantData
     careList.value = careData
+    allPlants.value = allList
     if (plantData) {
       secretsList.value = await PlantService.getSecretsForPlant(plantData.id, plantData.name)
     }
@@ -79,11 +85,26 @@ onMounted(async () => {
     error.value = e.message || 'Ошибка загрузки'
   } finally {
     loading.value = false
+    if (isRefresh) {
+      isRefreshing.value = false
+    }
   }
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', onScroll, { passive: true })
+  const id = route.params.id as string
+  loadPlantData(id)
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', onScroll)
+})
+
+watch(() => route.params.id, (newId) => {
+  if (newId) {
+    loadPlantData(newId as string)
+  }
 })
 
 async function toggleGarden() {
@@ -102,15 +123,110 @@ async function toggleGarden() {
 function goToProduct(name: string) {
   router.push(`/products/${encodeURIComponent(name.toLowerCase())}`)
 }
+
+// ─── SWIPE & PULL-TO-REFRESH LOGIC ───
+const touchStartX = ref(0)
+const touchStartY = ref(0)
+const isRefreshing = ref(false)
+const pullDistance = ref(0)
+
+const currentIndex = computed(() => {
+  if (!allPlants.value.length || !plant.value) return -1
+  return allPlants.value.findIndex(p => p.id === plant.value?.id || p.name === plant.value?.name)
+})
+
+const hasPrev = computed(() => currentIndex.value > 0)
+const hasNext = computed(() => currentIndex.value !== -1 && currentIndex.value < allPlants.value.length - 1)
+
+function goToNextPlant() {
+  if (hasNext.value) {
+    router.push(`/plants/${allPlants.value[currentIndex.value + 1].id}`)
+  }
+}
+
+function goToPrevPlant() {
+  if (hasPrev.value) {
+    router.push(`/plants/${allPlants.value[currentIndex.value - 1].id}`)
+  }
+}
+
+function triggerRefresh() {
+  if (isRefreshing.value) return
+  isRefreshing.value = true
+  const id = route.params.id as string
+  loadPlantData(id, true)
+}
+
+function onTouchStart(e: TouchEvent) {
+  if (e.touches.length !== 1) return
+  touchStartX.value = e.touches[0].clientX
+  touchStartY.value = e.touches[0].clientY
+}
+
+function onTouchMove(e: TouchEvent) {
+  if (e.touches.length !== 1 || loading.value || isRefreshing.value) return
+  const currentX = e.touches[0].clientX
+  const currentY = e.touches[0].clientY
+  const deltaX = currentX - touchStartX.value
+  const deltaY = currentY - touchStartY.value
+
+  // Pull to refresh: если мы на самом верху страницы и тянем вниз
+  if (window.scrollY <= 0 && deltaY > 0 && Math.abs(deltaY) > Math.abs(deltaX)) {
+    if (e.cancelable) e.preventDefault()
+    pullDistance.value = Math.min(deltaY * 0.4, 80)
+  }
+}
+
+function onTouchEnd(e: TouchEvent) {
+  if (e.changedTouches.length !== 1 || loading.value) return
+  const endX = e.changedTouches[0].clientX
+  const endY = e.changedTouches[0].clientY
+  const deltaX = endX - touchStartX.value
+  const deltaY = endY - touchStartY.value
+
+  // Проверяем pull-to-refresh
+  if (pullDistance.value >= 50) {
+    pullDistance.value = 0
+    triggerRefresh()
+    return
+  } else {
+    pullDistance.value = 0
+  }
+
+  // Проверяем горизонтальный свайп
+  if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+    if (deltaX < 0) {
+      // Свайп влево -> следующее растение
+      goToNextPlant()
+    } else {
+      // Свайп вправо -> предыдущее растение
+      goToPrevPlant()
+    }
+  }
+}
 </script>
 
 <template>
-  <div class="plant-detail">
+  <div
+    class="plant-detail"
+    @touchstart="onTouchStart"
+    @touchmove="onTouchMove"
+    @touchend="onTouchEnd"
+  >
+    <!-- PULL TO REFRESH BANNER -->
+    <div
+      v-if="pullDistance > 0 || isRefreshing"
+      class="pull-refresh-banner"
+      :style="{ transform: `translateY(${isRefreshing ? 0 : pullDistance - 48}px)` }"
+    >
+      <RefreshCw :size="18" :class="{ 'spin-anim': isRefreshing }" />
+      <span>{{ isRefreshing ? 'Обновление данных...' : 'Отпустите для обновления' }}</span>
+    </div>
 
     <!-- LOADING -->
     <template v-if="loading">
       <div class="detail-header skeleton-header">
-        <button class="back-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
+        <button class="icon-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
         <div class="skel skel-circle"></div>
         <div class="skel-col">
           <div class="skel skel-title"></div>
@@ -127,7 +243,7 @@ function goToProduct(name: string) {
     <!-- ERROR -->
     <template v-else-if="error || !plant">
       <div class="detail-header" style="background: var(--color-error, #E76F51)">
-        <button class="back-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
+        <button class="icon-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
         <span style="color:white;font-size:15px">{{ error || 'Растение не найдено' }}</span>
       </div>
     </template>
@@ -136,7 +252,7 @@ function goToProduct(name: string) {
     <template v-else>
       <div class="sticky-top-container" :class="{ 'is-scrolled': isScrolled }">
         <div class="detail-header">
-          <button class="back-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
+          <button class="icon-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
           <div class="detail-emoji">
             {{ plant.emoji || CATEGORY_EMOJI[plant.category] || '🌱' }}
           </div>
@@ -145,16 +261,29 @@ function goToProduct(name: string) {
             <div class="detail-latin">{{ plant.latin_name }}</div>
           </div>
           <span class="detail-category">{{ CATEGORY_LABELS[plant.category] || plant.category }}</span>
-          <button
-            class="header-garden-btn"
-            :class="{ active: inGarden }"
-            :title="inGarden ? 'В моём саду' : 'Добавить в мой сад'"
-            @click="toggleGarden"
-          >
-            <BookmarkCheck v-if="inGarden" :size="20" />
-            <Bookmark v-else :size="20" />
-            <span class="btn-text">{{ inGarden ? 'В саду' : 'В сад' }}</span>
-          </button>
+
+          <div class="header-actions">
+            <button
+              class="header-garden-btn"
+              :class="{ active: inGarden }"
+              :title="inGarden ? 'В моём саду' : 'Добавить в мой сад'"
+              @click="toggleGarden"
+            >
+              <BookmarkCheck v-if="inGarden" :size="20" />
+              <Bookmark v-else :size="20" />
+              <span class="btn-text">{{ inGarden ? 'В саду' : 'В сад' }}</span>
+            </button>
+
+            <!-- Кнопки навигации по каталогу -->
+            <div class="nav-buttons">
+              <button class="icon-btn nav-btn" :disabled="!hasPrev" @click="goToPrevPlant" title="Предыдущее растение">
+                <ChevronLeft :size="20" />
+              </button>
+              <button class="icon-btn nav-btn" :disabled="!hasNext" @click="goToNextPlant" title="Следующее растение">
+                <ChevronRight :size="20" />
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="detail-subhead">
@@ -244,6 +373,36 @@ function goToProduct(name: string) {
   padding-bottom: 32px;
   min-height: 100vh;
   background: var(--color-background);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ── PULL TO REFRESH BANNER ── */
+.pull-refresh-banner {
+  position: fixed;
+  top: calc(56px + env(safe-area-inset-top, 0px));
+  left: 0;
+  right: 0;
+  height: 48px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  z-index: 200;
+  transition: transform 0.2s ease;
+
+  .spin-anim {
+    animation: spin 1s linear infinite;
+  }
+}
+@keyframes spin {
+  100% { transform: rotate(360deg); }
 }
 
 /* ── STICKY TOP CONTAINER ── */
@@ -273,8 +432,8 @@ function goToProduct(name: string) {
   flex-wrap: wrap;
 }
 
-.back-btn {
-  background: rgba(255,255,255,0.2);
+.icon-btn {
+  background: rgba(255, 255, 255, 0.2);
   border: none;
   border-radius: 10px;
   color: white;
@@ -285,6 +444,10 @@ function goToProduct(name: string) {
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
+  transition: background 0.15s;
+
+  &:hover:not(:disabled) { background: rgba(255, 255, 255, 0.3); }
+  &:disabled { opacity: 0.3; cursor: default; }
 }
 
 .detail-emoji { font-size: 36px; flex-shrink: 0; }
@@ -300,17 +463,31 @@ function goToProduct(name: string) {
 
 .detail-latin {
   font-size: 13px;
-  color: rgba(255,255,255,0.7);
+  color: rgba(255, 255, 255, 0.7);
   font-style: italic;
 }
 
 .detail-category {
   font-size: 12px;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   color: white;
   padding: 4px 10px;
   border-radius: 20px;
   flex-shrink: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
 }
 
 .header-garden-btn {
