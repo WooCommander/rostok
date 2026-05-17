@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import FpCard from '@/design-system/components/FpCard.vue'
 import FpButton from '@/design-system/components/FpButton.vue'
@@ -7,7 +7,7 @@ import FpConfirmationModal from '@/design-system/components/FpConfirmationModal.
 import { changelog } from '@/data/changelog'
 import { AppUpdateService, type AppUpdateMeta } from '@/app/services/AppUpdateService'
 import { useNotify } from '@/composables/useNotify'
-import { Info, Download, Share2 } from 'lucide-vue-next'
+import { Download, Share2 } from 'lucide-vue-next'
 
 const router = useRouter()
 const { notify } = useNotify()

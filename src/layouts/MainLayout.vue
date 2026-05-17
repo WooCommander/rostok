@@ -6,7 +6,7 @@ import { authStore } from '@/modules/auth/store/authStore'
 import { changelog } from '@/data/changelog'
 import {
   Home, Leaf, User, ClipboardList, Menu, X,
-  FileText, LogOut, Sun, Moon, Plus, Palette, ArrowUp, ShieldAlert, Calculator, Info
+  LogOut, Sun, Moon, Plus, Palette, ArrowUp, ShieldAlert, Calculator, Info
 } from 'lucide-vue-next'
 import { FpHaptics } from '@/shared/lib/haptics'
 
