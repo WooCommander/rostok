@@ -6,7 +6,7 @@ import { authStore } from '@/modules/auth/store/authStore'
 import { changelog } from '@/data/changelog'
 import {
   Home, Leaf, User, ClipboardList, Menu, X,
-  LogOut, Sun, Moon, Plus, Palette, ArrowUp, ShieldAlert, Calculator, Info
+  LogOut, Sun, Moon, Plus, ArrowUp, ShieldAlert, Calculator, Info
 } from 'lucide-vue-next'
 import { FpHaptics } from '@/shared/lib/haptics'
 
@@ -157,16 +157,20 @@ const handleLogout = async () => {
             <a class="drawer-link" :class="{ active: currentPath === '/' }" @click.prevent="navigate('/')">
               <Home :size="20" class="link-icon" /> Сегодня
             </a>
-            <a class="drawer-link" :class="{ active: currentPath.startsWith('/plants') }" @click.prevent="navigate('/plants')">
+            <a class="drawer-link" :class="{ active: currentPath.startsWith('/plants') }"
+              @click.prevent="navigate('/plants')">
               <Leaf :size="20" class="link-icon" /> Растения
             </a>
-            <a class="drawer-link" :class="{ active: currentPath === '/journal' }" @click.prevent="navigate('/journal')">
+            <a class="drawer-link" :class="{ active: currentPath === '/journal' }"
+              @click.prevent="navigate('/journal')">
               <ClipboardList :size="20" class="link-icon" /> Журнал
             </a>
-            <a class="drawer-link" :class="{ active: currentPath.startsWith('/products') }" @click.prevent="navigate('/products')">
+            <a class="drawer-link" :class="{ active: currentPath.startsWith('/products') }"
+              @click.prevent="navigate('/products')">
               <ShieldAlert :size="20" class="link-icon" /> Справочник препаратов
             </a>
-            <a class="drawer-link" :class="{ active: currentPath === '/calculator' }" @click.prevent="navigate('/calculator')">
+            <a class="drawer-link" :class="{ active: currentPath === '/calculator' }"
+              @click.prevent="navigate('/calculator')">
               <Calculator :size="20" class="link-icon" /> Агрокалькулятор
             </a>
           </div>
@@ -176,9 +180,9 @@ const handleLogout = async () => {
             <a class="drawer-link" :class="{ active: currentPath === '/about' }" @click.prevent="navigate('/about')">
               <Info :size="20" class="link-icon" /> О приложении
             </a>
-            <a class="drawer-link" :class="{ active: currentPath === '/design-system' }" @click.prevent="navigate('/design-system')">
+            <!-- <a class="drawer-link" :class="{ active: currentPath === '/design-system' }" @click.prevent="navigate('/design-system')">
               <Palette :size="20" class="link-icon" /> Дизайн-система
-            </a>
+            </a> -->
           </div>
         </div>
 
@@ -263,7 +267,10 @@ const handleLogout = async () => {
   align-items: center;
   justify-content: center;
   transition: background 0.15s;
-  &:hover { background: var(--color-surface-hover); }
+
+  &:hover {
+    background: var(--color-surface-hover);
+  }
 }
 
 .profile-chip {
@@ -280,8 +287,15 @@ const handleLogout = async () => {
   cursor: pointer;
   box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary) 30%, transparent);
   transition: transform 0.15s;
-  &:active { transform: scale(0.92); }
-  &.guest { background: var(--color-text-tertiary); box-shadow: none; }
+
+  &:active {
+    transform: scale(0.92);
+  }
+
+  &.guest {
+    background: var(--color-text-tertiary);
+    box-shadow: none;
+  }
 }
 
 /* ── CONTENT ── */
@@ -293,6 +307,7 @@ const handleLogout = async () => {
 .content-container {
   max-width: 100%;
   flex: 1;
+
   @media (max-width: 768px) {
     padding-bottom: 72px;
   }
@@ -338,12 +353,16 @@ const handleLogout = async () => {
 
     &.active {
       color: var(--color-primary);
-      .label { font-weight: 700; }
+
+      .label {
+        font-weight: 700;
+      }
     }
 
     &.action {
       position: relative;
       top: -10px;
+
       .plus-btn {
         width: 48px;
         height: 48px;
@@ -356,9 +375,15 @@ const handleLogout = async () => {
         box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary) 35%, transparent);
         margin-bottom: 2px;
         transition: transform 0.15s;
-        &.active { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 20%, transparent); }
+
+        &.active {
+          box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 20%, transparent);
+        }
       }
-      &:active .plus-btn { transform: scale(0.9); }
+
+      &:active .plus-btn {
+        transform: scale(0.9);
+      }
     }
   }
 }
@@ -367,7 +392,7 @@ const handleLogout = async () => {
 .menu-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.45);
+  background: rgba(0, 0, 0, 0.45);
   z-index: 2000;
   backdrop-filter: blur(3px);
 }
@@ -456,7 +481,10 @@ const handleLogout = async () => {
   padding: 4px;
   border-radius: 6px;
   display: flex;
-  &:hover { background: var(--color-surface-hover); }
+
+  &:hover {
+    background: var(--color-surface-hover);
+  }
 }
 
 .drawer-content {
@@ -468,7 +496,10 @@ const handleLogout = async () => {
   gap: 20px;
 }
 
-.nav-group { display: flex; flex-direction: column; }
+.nav-group {
+  display: flex;
+  flex-direction: column;
+}
 
 .nav-label {
   padding: 0 20px 6px;
@@ -492,14 +523,24 @@ const handleLogout = async () => {
   border-left: 3px solid transparent;
   transition: all 0.15s;
 
-  .link-icon { color: var(--color-text-tertiary); transition: color 0.15s; }
+  .link-icon {
+    color: var(--color-text-tertiary);
+    transition: color 0.15s;
+  }
 
-  &:hover, &.active {
+  &:hover,
+  &.active {
     background: var(--color-surface-hover);
     color: var(--color-text-primary);
-    .link-icon { color: var(--color-primary); }
+
+    .link-icon {
+      color: var(--color-primary);
+    }
   }
-  &.active { border-left-color: var(--color-primary); }
+
+  &.active {
+    border-left-color: var(--color-primary);
+  }
 }
 
 .drawer-footer {
@@ -526,10 +567,16 @@ const handleLogout = async () => {
   font-weight: 500;
   color: var(--color-text-secondary);
   transition: background 0.15s;
-  &:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+
+  &:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text-primary);
+  }
 }
 
-.logout-drawer:hover { color: var(--color-error); }
+.logout-drawer:hover {
+  color: var(--color-error);
+}
 
 /* ── SCROLL TO TOP ── */
 .scroll-top-btn {
@@ -554,6 +601,7 @@ const handleLogout = async () => {
     background: color-mix(in srgb, var(--color-primary) 90%, white);
     transform: translateY(-2px);
   }
+
   &:active {
     transform: scale(0.92);
   }
@@ -565,10 +613,34 @@ const handleLogout = async () => {
 }
 
 /* ── TRANSITIONS ── */
-.slide-right-enter-active, .slide-right-leave-active { transition: transform 0.25s ease; }
-.slide-right-enter-from, .slide-right-leave-to { transform: translateX(-100%); }
-.fade-enter-active, .fade-leave-active { transition: opacity 0.15s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
-.fade-scale-enter-active, .fade-scale-leave-active { transition: opacity 0.2s, transform 0.2s; }
-.fade-scale-enter-from, .fade-scale-leave-to { opacity: 0; transform: scale(0.8); }
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: transform 0.25s ease;
+}
+
+.slide-right-enter-from,
+.slide-right-leave-to {
+  transform: translateX(-100%);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.fade-scale-enter-active,
+.fade-scale-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.fade-scale-enter-from,
+.fade-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.8);
+}
 </style>

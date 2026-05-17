@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import FpCard from '@/design-system/components/FpCard.vue'
 import FpButton from '@/design-system/components/FpButton.vue'
-import FpConfirmationModal from '@/design-system/components/FpConfirmationModal.vue'
+import AppUpdateProgressModal from '@/design-system/components/AppUpdateProgressModal.vue'
 import { changelog } from '@/data/changelog'
 import { AppUpdateService, type AppUpdateMeta } from '@/app/services/AppUpdateService'
 import { useNotify } from '@/composables/useNotify'
@@ -13,7 +13,7 @@ const router = useRouter()
 const { notify } = useNotify()
 
 const releases = changelog
-const currentVersion = releases[0]?.version || '1.1.1'
+const currentVersion = releases[0]?.version || '1.2.0'
 
 const isChecking = ref(false)
 const updateMeta = ref<AppUpdateMeta | null>(null)
@@ -34,11 +34,6 @@ async function onCheckUpdates() {
   } finally {
     isChecking.value = false
   }
-}
-
-function onConfirmUpdate() {
-  const url = updateMeta.value?.download_url || 'https://kzrylsrzyqrrpofaqixm.supabase.co/storage/v1/object/public/releases/Rostok.apk'
-  window.open(url, '_blank')
 }
 
 async function onShare() {
@@ -137,10 +132,14 @@ async function onShare() {
       </div>
     </div>
 
-    <FpConfirmationModal v-if="updateMeta" v-model:visible="showUpdateModal"
+    <AppUpdateProgressModal
+      v-if="updateMeta"
+      v-model:visible="showUpdateModal"
       :title="'Доступна версия ' + updateMeta.version"
       :message="updateMeta.release_notes || 'В новой версии добавлены полезные функции, справочники и секреты выращивания! Рекомендуем обновиться.'"
-      confirmText="Обновить" cancelText="Отмена" variant="primary" @confirm="onConfirmUpdate" />
+      :downloadUrl="updateMeta.download_url"
+      :version="updateMeta.version"
+    />
   </div>
 </template>
 

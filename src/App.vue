@@ -3,44 +3,39 @@ import { ref, onMounted } from 'vue'
 import { useTheme } from '@/composables/useTheme'
 import MainLayout from '@/layouts/MainLayout.vue'
 import FpNotificationContainer from '@/design-system/components/FpNotificationContainer.vue'
-import FpConfirmationModal from '@/design-system/components/FpConfirmationModal.vue'
+import AppUpdateProgressModal from '@/design-system/components/AppUpdateProgressModal.vue'
 import { DeviceService } from '@/app/services/DeviceService'
 import { AppUpdateService, type AppUpdateMeta } from '@/app/services/AppUpdateService'
+import { changelog } from '@/data/changelog'
 
 const { initTheme } = useTheme()
 
 const showUpdateModal = ref(false)
 const updateMeta = ref<AppUpdateMeta | null>(null)
+const currentVersion = changelog[0]?.version || '1.2.0'
 
 onMounted(async () => {
   initTheme()
   DeviceService.initStatusBar()
   
-  const meta = await AppUpdateService.checkForUpdates('1.1.1')
+  const meta = await AppUpdateService.checkForUpdates(currentVersion)
   if (meta) {
     updateMeta.value = meta
     showUpdateModal.value = true
   }
 })
-
-function onConfirmUpdate() {
-  const url = updateMeta.value?.download_url || 'https://kzrylsrzyqrrpofaqixm.supabase.co/storage/v1/object/public/releases/Rostok.apk'
-  window.open(url, '_blank')
-}
 </script>
 
 <template>
   <MainLayout />
   <FpNotificationContainer />
 
-  <FpConfirmationModal
+  <AppUpdateProgressModal
     v-if="updateMeta"
     v-model:visible="showUpdateModal"
     :title="'Доступна версия ' + updateMeta.version"
     :message="updateMeta.release_notes || 'В новой версии добавлены полезные функции, справочники и секреты выращивания! Рекомендуем обновиться.'"
-    confirmText="Обновить"
-    cancelText="Позже"
-    variant="primary"
-    @confirm="onConfirmUpdate"
+    :downloadUrl="updateMeta.download_url"
+    :version="updateMeta.version"
   />
 </template>
