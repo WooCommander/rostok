@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Plus, Bookmark, BookmarkCheck, Sparkles, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ArrowLeft, Plus, Bookmark, BookmarkCheck, Sparkles, RefreshCw, ChevronLeft, ChevronRight, Lightbulb, Ban } from 'lucide-vue-next'
 import { PlantService, type Plant, type PlantCare, type PlantSecret } from '@/modules/plants/services/PlantService'
 import { authStore } from '@/modules/auth/store/authStore'
 
@@ -11,7 +11,12 @@ const router = useRouter()
 const plant = ref<Plant | null>(null)
 const careList = ref<PlantCare[]>([])
 const secretsList = ref<PlantSecret[]>([])
-const activeTab = ref<'care' | 'secrets'>('care')
+const activeTab = ref<'care' | 'secrets' | 'facts' | 'myths'>('care')
+
+const filteredSecrets = computed(() => secretsList.value.filter(s => s.secret_type !== 'fact' && s.secret_type !== 'myth'))
+const filteredFacts = computed(() => secretsList.value.filter(s => s.secret_type === 'fact'))
+const filteredMyths = computed(() => secretsList.value.filter(s => s.secret_type === 'myth'))
+
 const loading = ref(true)
 const error = ref<string | null>(null)
 const inGarden = ref(false)
@@ -313,12 +318,22 @@ function getDiffLabel(diff?: string): string {
               <!-- Tabs switcher -->
               <div class="tabs-wrap">
                 <button class="tab-btn" :class="{ active: activeTab === 'care' }" @click="activeTab = 'care'">
-                  Уход и календарь
+                  <span>Уход</span>
                 </button>
                 <button class="tab-btn" :class="{ active: activeTab === 'secrets' }" @click="activeTab = 'secrets'">
                   <Sparkles :size="16" />
-                  Секреты урожая
-                  <span v-if="secretsList.length" class="badge">{{ secretsList.length }}</span>
+                  <span>Секреты</span>
+                  <span v-if="filteredSecrets.length" class="badge">{{ filteredSecrets.length }}</span>
+                </button>
+                <button class="tab-btn" :class="{ active: activeTab === 'facts' }" @click="activeTab = 'facts'">
+                  <Lightbulb :size="16" />
+                  <span>Факты</span>
+                  <span v-if="filteredFacts.length" class="badge">{{ filteredFacts.length }}</span>
+                </button>
+                <button class="tab-btn" :class="{ active: activeTab === 'myths' }" @click="activeTab = 'myths'">
+                  <Ban :size="16" />
+                  <span>Мифы</span>
+                  <span v-if="filteredMyths.length" class="badge">{{ filteredMyths.length }}</span>
                 </button>
               </div>
             </div>
@@ -356,11 +371,44 @@ function getDiffLabel(diff?: string): string {
             <div v-else-if="activeTab === 'secrets'" class="secrets-section">
               <div class="section-title">Принципы хорошего урожая</div>
 
-              <div v-if="secretsList.length === 0" class="care-empty">
+              <div v-if="filteredSecrets.length === 0" class="care-empty">
                 Секреты для этой культуры скоро появятся!
               </div>
 
-              <div v-for="secret in secretsList" :key="secret.id" class="secret-card">
+              <div v-for="secret in filteredSecrets" :key="secret.id" class="secret-card">
+                <div v-if="secret.emoji" class="secret-emoji">{{ secret.emoji }}</div>
+                <div class="secret-content">
+                  <div class="secret-title">{{ secret.title }}</div>
+                  <div class="secret-desc">{{ secret.description }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div v-else-if="activeTab === 'facts'" class="secrets-section">
+              <div class="section-title">Интересная информация и биологические факты</div>
+
+              <div v-if="filteredFacts.length === 0" class="care-empty">
+                Факты для этой культуры скоро появятся!
+              </div>
+
+              <div v-for="secret in filteredFacts" :key="secret.id" class="secret-card fact-card">
+                <div v-if="secret.emoji" class="secret-emoji">{{ secret.emoji }}</div>
+                <div class="secret-content">
+                  <div class="secret-title">{{ secret.title }}</div>
+                  <div class="secret-desc">{{ secret.description }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div v-else-if="activeTab === 'myths'" class="secrets-section">
+              <div class="section-title">Популярные заблуждения и мифы</div>
+
+              <div v-if="filteredMyths.length === 0" class="care-empty">
+                Мифы для этой культуры скоро появятся!
+              </div>
+
+              <div v-for="secret in filteredMyths" :key="secret.id" class="secret-card myth-card">
+                <div v-if="secret.emoji" class="secret-emoji">{{ secret.emoji }}</div>
                 <div class="secret-content">
                   <div class="secret-title">{{ secret.title }}</div>
                   <div class="secret-desc">{{ secret.description }}</div>
@@ -644,23 +692,28 @@ function getDiffLabel(diff?: string): string {
   border-radius: var(--radius-lg);
   padding: 4px;
   margin-bottom: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
 }
 
 .tab-btn {
   flex: 1;
-  padding: 12px;
+  min-width: 80px;
+  padding: 12px 8px;
   border: none;
   background: transparent;
   border-radius: var(--radius-md);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--color-text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   transition: all 0.15s;
+  white-space: nowrap;
 
   &.active {
     background: var(--color-primary);
@@ -669,7 +722,7 @@ function getDiffLabel(diff?: string): string {
 
   .badge {
     background: color-mix(in srgb, currentColor 20%, transparent);
-    padding: 2px 8px;
+    padding: 2px 6px;
     border-radius: 99px;
     font-size: 11px;
   }
@@ -688,10 +741,34 @@ function getDiffLabel(diff?: string): string {
   padding: 16px;
   margin-bottom: 12px;
   box-shadow: var(--shadow-sm);
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.secret-emoji {
+  font-size: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  background: var(--color-surface-variant, rgba(0, 0, 0, 0.04));
+  border-radius: var(--radius-md);
+}
+
+.secret-card.fact-card {
+  border-left-color: #f59e0b;
+}
+
+.secret-card.myth-card {
+  border-left-color: #ef4444;
 }
 
 .secret-content {
   min-width: 0;
+  flex: 1;
 }
 
 .secret-title {
