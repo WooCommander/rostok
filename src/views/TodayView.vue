@@ -4,6 +4,7 @@ import { Sun, Droplets, ChevronRight, RefreshCw, Calculator, ShieldAlert } from 
 import { useRouter } from 'vue-router'
 import { WeatherService, type WeatherData } from '@/modules/weather/services/WeatherService'
 import { PlantService, type PlantCare, type Plant } from '@/modules/plants/services/PlantService'
+import { useReminderState, ReminderNotificationCard } from '@/modules/reminders'
 
 const router = useRouter()
 
@@ -69,7 +70,20 @@ async function loadRecommendations() {
   }
 }
 
-onMounted(loadWeather)
+const { activeReminders, loadForToday, completeReminder, dismissReminder } = useReminderState()
+
+function onCompleteReminder(id: string, raw: any) {
+  completeReminder(id)
+  const p = encodeURIComponent(raw.product || '')
+  const d = encodeURIComponent(raw.dose || '')
+  const sel = encodeURIComponent(raw.userPlantId ? 'u_' + raw.userPlantId : 'p_' + raw.plantId)
+  router.push(`/journal/add?care_type=${raw.careType}&product=${p}&dose=${d}&selected_id=${sel}`)
+}
+
+onMounted(() => {
+  loadWeather()
+  loadForToday()
+})
 </script>
 
 <template>
@@ -98,6 +112,17 @@ onMounted(loadWeather)
       <button class="weather-change" @click="router.push('/profile')">
         Изменить <ChevronRight :size="14" />
       </button>
+    </div>
+
+    <!-- Active Reminders -->
+    <div v-if="activeReminders.length > 0" class="reminders-container">
+      <ReminderNotificationCard
+        v-for="rem in activeReminders"
+        :key="rem.id"
+        :reminder="rem"
+        @complete="onCompleteReminder"
+        @dismiss="dismissReminder"
+      />
     </div>
 
     <!-- Fungus risk alert -->
@@ -171,6 +196,7 @@ onMounted(loadWeather)
 
 <style scoped lang="scss">
 .today-view { padding: 16px 16px 24px; }
+.reminders-container { margin-bottom: 16px; }
 
 .page-header { margin-bottom: 16px; }
 .header-meta { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 4px; text-transform: capitalize; }

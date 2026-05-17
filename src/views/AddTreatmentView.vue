@@ -5,6 +5,7 @@ import { ArrowLeft, Check } from 'lucide-vue-next'
 import { PlantService, type Plant, type UserPlant } from '@/modules/plants/services/PlantService'
 import { JournalService } from '@/modules/journal/services/JournalService'
 import { WeatherService } from '@/modules/weather/services/WeatherService'
+import { ReminderService } from '@/modules/reminders'
 
 const router = useRouter()
 const route = useRoute()
@@ -28,6 +29,9 @@ const form = ref({
   date: new Date().toISOString().split('T')[0]
 })
 
+const enableReminder = ref(false)
+const reminderDays = ref(14)
+
 const types = [
   { value: 'spraying', label: '💧 Опрыскивание' },
   { value: 'fertilizing', label: '🌿 Удобрение' },
@@ -37,10 +41,17 @@ const types = [
 ]
 
 onMounted(async () => {
-  if (route.query.care_type) form.value.type = String(route.query.care_type)
+  if (route.query.care_type) {
+    form.value.type = String(route.query.care_type)
+    if (form.value.type === 'fertilizing') {
+      enableReminder.value = true
+      reminderDays.value = 14
+    }
+  }
   if (route.query.product) form.value.product = String(route.query.product)
   if (route.query.dose) form.value.dose = String(route.query.dose)
   if (route.query.note) form.value.note = String(route.query.note)
+  if (route.query.selected_id) form.value.selected_id = String(route.query.selected_id)
 
   try {
     const [allPlants, myPlants] = await Promise.all([
@@ -50,14 +61,14 @@ onMounted(async () => {
     plants.value = allPlants
     userPlantsList.value = myPlants
     
-    // Если есть грядки в саду, можно автоматически выбрать первую для удобства
-    if (myPlants.length > 0 && !form.value.selected_id) {
+    if (route.query.selected_id) {
+      form.value.selected_id = String(route.query.selected_id)
+    } else if (myPlants.length > 0 && !form.value.selected_id) {
       form.value.selected_id = 'u_' + myPlants[0].id
     }
   } catch (e) {
     console.error(e)
   }
-  // Автоподставить температуру
   try {
     const w = await WeatherService.getWithCache()
     form.value.temp = String(w.temp)
@@ -97,6 +108,22 @@ async function save() {
       temperature: form.value.temp ? parseFloat(form.value.temp) : null,
       notes: form.value.note || undefined
     })
+
+    if (enableReminder.value && reminderDays.value > 0) {
+      const targetDate = new Date(form.value.date)
+      targetDate.setDate(targetDate.getDate() + reminderDays.value)
+      const remindAtDate = targetDate.toISOString().split('T')[0]
+
+      await ReminderService.addReminder({
+        plantId,
+        userPlantId,
+        careType: form.value.type,
+        product: form.value.product || undefined,
+        dose: form.value.dose || undefined,
+        remindAtDate
+      })
+    }
+
     router.push('/journal')
   } catch (e) {
     console.error(e)
@@ -167,6 +194,15 @@ async function save() {
         <textarea v-model="form.note" class="field-input field-textarea" placeholder="Наблюдения..." rows="3"></textarea>
       </div>
 
+      <div class="field reminder-field" v-if="form.type === 'fertilizing' || form.type === 'spraying'">
+        <label class="field-label">⏰ Напоминание о повторной обработке</label>
+        <div class="reminder-options">
+          <button class="rem-btn" :class="{ active: !enableReminder }" @click="enableReminder = false">Не нужно</button>
+          <button class="rem-btn" :class="{ active: enableReminder && reminderDays === 14 }" @click="enableReminder = true; reminderDays = 14">Через 14 дней</button>
+          <button class="rem-btn" :class="{ active: enableReminder && reminderDays === 21 }" @click="enableReminder = true; reminderDays = 21">Через 21 день</button>
+        </div>
+      </div>
+
       <button class="save-btn" :disabled="!form.selected_id || saving" @click="save">
         <Check :size="18" />
         {{ saving ? 'Сохраняю...' : 'Сохранить' }}
@@ -202,6 +238,37 @@ async function save() {
   background: var(--color-surface); font-size: 13px; color: var(--color-text-secondary);
   cursor: pointer; text-align: center;
   &.active { background: var(--color-surface-hover); border-color: var(--color-primary); color: var(--color-primary); font-weight: 600; }
+}
+.reminder-field {
+  background: var(--color-surface-hover);
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+.reminder-options {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.rem-btn {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover { color: var(--color-text-primary); }
+
+  &.active {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+  }
 }
 .save-btn {
   display: flex; align-items: center; justify-content: center; gap: 8px;

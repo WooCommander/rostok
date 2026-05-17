@@ -23,6 +23,11 @@ const categories = [
   { id: 'herb', label: '🌿 Зелень' }
 ]
 
+function getCatLabel(catId: string): string {
+  const found = categories.find(c => c.id === catId)
+  return found ? found.label.replace(/^[^\wА-Яа-я]+/, '').trim() : catId
+}
+
 const userPlantIds = computed(() => userPlantsList.value.map(u => u.plant_id))
 
 const filteredCatalog = computed(() => {
@@ -367,21 +372,29 @@ onUnmounted(() => {
           class="plant-card"
           @click="router.push(`/plants/${plant.id}`)"
         >
-          <div class="plant-emoji">{{ plant.emoji }}</div>
-          <div class="plant-info">
-            <div class="plant-name">{{ plant.name }}</div>
-            <div class="plant-latin">{{ plant.latin_name }}</div>
+          <div class="card-top-row">
+            <div class="emoji-wrapper">
+              <span class="plant-emoji">{{ plant.emoji }}</span>
+            </div>
+            <button
+              class="garden-toggle-btn"
+              :class="{ active: userPlantIds.includes(plant.id) }"
+              title="В моём саду"
+              @click="toggleGardenCatalog(plant, $event)"
+            >
+              <BookmarkCheck v-if="userPlantIds.includes(plant.id)" :size="22" />
+              <Bookmark v-else :size="22" />
+            </button>
           </div>
-          <button
-            class="garden-toggle-btn"
-            :class="{ active: userPlantIds.includes(plant.id) }"
-            title="В моём саду"
-            @click="toggleGardenCatalog(plant, $event)"
-          >
-            <BookmarkCheck v-if="userPlantIds.includes(plant.id)" :size="20" />
-            <Bookmark v-else :size="20" />
-          </button>
-          <ChevronRight :size="16" class="plant-arrow" />
+          <div class="card-main">
+            <div class="plant-name">{{ plant.name }}</div>
+            <div class="plant-latin" v-if="plant.latin_name">{{ plant.latin_name }}</div>
+            <p class="plant-desc" v-if="plant.description">{{ plant.description }}</p>
+          </div>
+          <div class="card-footer">
+            <span class="category-pill" :class="plant.category">{{ getCatLabel(plant.category) }}</span>
+            <span class="more-link">Подробнее <ChevronRight :size="16" /></span>
+          </div>
         </div>
       </div>
     </template>
@@ -611,24 +624,130 @@ onUnmounted(() => {
   &:hover { background: var(--color-primary); color: var(--color-on-primary); }
 }
 
-.plants-grid { display: flex; flex-direction: column; gap: 8px; }
+.plants-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
 
 .plant-card {
-  background: var(--color-surface); border: 1px solid var(--color-border);
-  border-radius: var(--radius-md); padding: 12px 14px;
-  display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background 0.15s;
-  &:active { background: var(--color-surface-hover); }
-  &.skeleton-card { height: 64px; background: var(--color-border); opacity: 0.4; cursor: default; }
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-sm);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary-subtle, rgba(45,106,79,0.3));
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &.skeleton-card {
+    min-height: 160px;
+    background: var(--color-border);
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .card-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    .emoji-wrapper {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-lg);
+      background: var(--color-background);
+      border: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+    }
+  }
+
+  .card-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+
+    .plant-name {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--color-text-primary);
+    }
+
+    .plant-latin {
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+      font-style: italic;
+    }
+
+    .plant-desc {
+      margin: 6px 0 0;
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border);
+
+    .category-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 99px;
+      background: var(--color-surface-hover);
+      color: var(--color-text-secondary);
+
+      &.vegetable { background: #E8F5EE; color: #1B4332; }
+      &.berry { background: #FFECE8; color: #7A2010; }
+      &.tree { background: #FFF8EC; color: #7A5010; }
+      &.shrub { background: #E8F4FD; color: #0C447C; }
+      &.herb { background: var(--color-soil-light); color: var(--color-soil); }
+    }
+
+    .more-link {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--color-primary);
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+  }
 }
+
 .plant-emoji { font-size: 26px; flex-shrink: 0; }
 .plant-photo-thumb {
   width: 44px; height: 44px; border-radius: var(--radius-sm);
   background-size: cover; background-position: center; flex-shrink: 0;
   border: 1px solid var(--color-border);
 }
-.plant-info { flex: 1; min-width: 0; }
-.plant-name { font-size: 15px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 2px; }
-.plant-latin { font-size: 12px; color: var(--color-text-tertiary); font-style: italic; }
 
 .plant-title-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
 .plant-sub { font-size: 13px; color: var(--color-text-tertiary); }
