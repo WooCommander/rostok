@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 import { WeatherService, type WeatherData } from '@/modules/weather/services/WeatherService'
 import { PlantService, type PlantCare, type Plant } from '@/modules/plants/services/PlantService'
 import { useReminderState, ReminderNotificationCard } from '@/modules/reminders'
-import { useTipsState, TipOfTheDayCard } from '@/modules/tips'
+import { useTipsState, TipOfTheDayModal } from '@/modules/tips'
 
 const router = useRouter()
 
@@ -74,6 +74,16 @@ async function loadRecommendations() {
 const { activeReminders, loadForToday, completeReminder, dismissReminder } = useReminderState()
 const { currentTip, nextTip } = useTipsState()
 
+const showTipModal = ref(false)
+
+function onTipModalClose(val: boolean) {
+  showTipModal.value = val
+  if (!val) {
+    const todayStr = new Date().toISOString().split('T')[0]
+    localStorage.setItem('rostok_daily_tip_date', todayStr)
+  }
+}
+
 function onCompleteReminder(id: string, raw: any) {
   completeReminder(id)
   const p = encodeURIComponent(raw.product || '')
@@ -85,6 +95,11 @@ function onCompleteReminder(id: string, raw: any) {
 onMounted(() => {
   loadWeather()
   loadForToday()
+
+  const todayStr = new Date().toISOString().split('T')[0]
+  if (localStorage.getItem('rostok_daily_tip_date') !== todayStr) {
+    showTipModal.value = true
+  }
 })
 </script>
 
@@ -164,7 +179,19 @@ onMounted(() => {
         <Sparkles :size="16" />
         Совет дня от агронома
       </div>
-      <TipOfTheDayCard :tip="currentTip" @next="nextTip" />
+      <div class="compact-tip-banner" @click="showTipModal = true">
+        <div class="banner-sparkle-box">
+          <Sparkles :size="20" class="sparkle-icon" />
+        </div>
+        <div class="compact-banner-info">
+          <span class="badge">{{ currentTip.categoryBadge }}</span>
+          <h3 class="banner-tip-title">{{ currentTip.emoji }} {{ currentTip.title }}</h3>
+        </div>
+        <div class="banner-read-action">
+          <span>Читать</span>
+          <ChevronRight :size="16" class="read-arrow" />
+        </div>
+      </div>
     </section>
 
     <!-- Recommendations -->
@@ -202,6 +229,14 @@ onMounted(() => {
         <ChevronRight :size="16" class="rec-arrow" />
       </div>
     </section>
+
+    <!-- Модальное окно совета дня -->
+    <TipOfTheDayModal
+      :tip="currentTip"
+      :model-value="showTipModal"
+      @update:model-value="onTipModalClose"
+      @next="nextTip"
+    />
   </div>
 </template>
 
@@ -348,5 +383,94 @@ onMounted(() => {
 .banner-card:hover .banner-arrow {
   transform: translateX(2px);
   color: var(--color-text-primary);
+}
+
+/* ── COMPACT TIP BANNER ── */
+.compact-tip-banner {
+  background: linear-gradient(135deg, var(--color-surface), color-mix(in srgb, var(--color-surface) 96%, var(--color-primary)));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--color-primary);
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary);
+
+    .read-arrow {
+      transform: translateX(3px);
+      color: var(--color-primary);
+    }
+  }
+}
+
+.banner-sparkle-box {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-lg);
+  background: rgba(45, 106, 79, 0.12);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.compact-banner-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .badge {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .banner-tip-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.banner-read-action {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
+  flex-shrink: 0;
+
+  .read-arrow {
+    transition: transform 0.15s;
+  }
 }
 </style>

@@ -4,6 +4,7 @@ export interface TipUiModel {
   id: string
   title: string
   content: string
+  bullets?: string[]
   categoryBadge: string
   emoji: string
   author: string
@@ -23,6 +24,7 @@ export const TipsAdapter = {
       id: item.id,
       title: item.title,
       content: item.content,
+      bullets: item.bullets,
       categoryBadge: catLabels[item.category] || 'Совет агронома',
       emoji: item.emoji,
       author: item.author || 'Агроном Rostok'
