@@ -376,19 +376,34 @@ onUnmounted(() => {
             <div class="emoji-wrapper">
               <span class="plant-emoji">{{ plant.emoji }}</span>
             </div>
-            <button
-              class="garden-toggle-btn"
-              :class="{ active: userPlantIds.includes(plant.id) }"
-              title="В моём саду"
-              @click="toggleGardenCatalog(plant, $event)"
-            >
-              <BookmarkCheck v-if="userPlantIds.includes(plant.id)" :size="22" />
-              <Bookmark v-else :size="22" />
-            </button>
+            <div class="top-badges">
+              <span v-if="plant.difficulty" class="diff-badge" :class="plant.difficulty">
+                {{ plant.difficulty === 'easy' ? '🟢 Легко' : plant.difficulty === 'medium' ? '🟡 Средне' : '🔴 Сложно' }}
+              </span>
+              <button
+                class="garden-toggle-btn"
+                :class="{ active: userPlantIds.includes(plant.id) }"
+                title="В моём саду"
+                @click="toggleGardenCatalog(plant, $event)"
+              >
+                <BookmarkCheck v-if="userPlantIds.includes(plant.id)" :size="22" />
+                <Bookmark v-else :size="22" />
+              </button>
+            </div>
           </div>
           <div class="card-main">
             <div class="plant-name">{{ plant.name }}</div>
             <div class="plant-latin" v-if="plant.latin_name">{{ plant.latin_name }}</div>
+            <div class="plant-requirements" v-if="plant.sun || plant.water">
+              <span class="req-pill" v-if="plant.sun" :title="plant.sun">
+                <span class="req-icon">{{ plant.sun.split(' ')[0] }}</span>
+                <span class="req-label">{{ plant.sun.split(' ').slice(1).join(' ') }}</span>
+              </span>
+              <span class="req-pill" v-if="plant.water" :title="plant.water">
+                <span class="req-icon">{{ plant.water.split(' ')[0] }}</span>
+                <span class="req-label">{{ plant.water.split(' ').slice(1).join(' ') }}</span>
+              </span>
+            </div>
             <p class="plant-desc" v-if="plant.description">{{ plant.description }}</p>
           </div>
           <div class="card-footer">
@@ -675,6 +690,48 @@ onUnmounted(() => {
       justify-content: center;
       font-size: 32px;
       box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .top-badges {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .diff-badge {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: var(--radius-pill);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        &.easy { background: rgba(34, 197, 94, 0.12); color: #15803d; border: 1px solid rgba(34, 197, 94, 0.2); }
+        &.medium { background: rgba(234, 179, 8, 0.12); color: #a16207; border: 1px solid rgba(234, 179, 8, 0.2); }
+        &.hard { background: rgba(239, 68, 68, 0.12); color: #b91c1c; border: 1px solid rgba(239, 68, 68, 0.2); }
+      }
+    }
+  }
+
+  .plant-requirements {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 6px 0 2px;
+
+    .req-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      background: var(--color-background);
+      border: 1px solid var(--color-border);
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+
+      .req-icon { font-size: 12px; }
     }
   }
 

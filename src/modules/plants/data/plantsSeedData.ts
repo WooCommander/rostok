@@ -7,7 +7,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Solanum lycopersicum',
     category: 'vegetable',
     emoji: '🍅',
-    description: 'Теплолюбивая культура. Требует формировки и подвязки. Чувствителен к фитофторозу.'
+    description: 'Теплолюбивая культура. Требует формировки и подвязки. Чувствителен к фитофторозу.',
+    difficulty: 'medium',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-ogurec',
@@ -15,7 +18,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Cucumis sativus',
     category: 'vegetable',
     emoji: '🥒',
-    description: 'Влаголюбив, не переносит холода. Быстро поражается мучнистой росой.'
+    description: 'Влаголюбив, не переносит холода. Быстро поражается мучнистой росой.',
+    difficulty: 'medium',
+    sun: '☀️ Солнце',
+    water: '💧💧 Влаголюбивое'
   },
   {
     id: 'seed-perec',
@@ -23,7 +29,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Capsicum annuum',
     category: 'vegetable',
     emoji: '🌶',
-    description: 'Требует тепла и равномерного полива. Чувствителен к тле и паутинному клещу.'
+    description: 'Требует тепла и равномерного полива. Чувствителен к тле и паутинному клещу.',
+    difficulty: 'medium',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-baklazhan',
@@ -31,7 +40,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Solanum melongena',
     category: 'vegetable',
     emoji: '🍆',
-    description: 'Теплолюбив. Поражается колорадским жуком и паутинным клещом.'
+    description: 'Теплолюбив. Поражается колорадским жуком и паутинным клещом.',
+    difficulty: 'hard',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-kapusta',
@@ -39,7 +51,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Brassica oleracea',
     category: 'vegetable',
     emoji: '🥬',
-    description: 'Холодостойкая. Главные враги — капустная муха, тля, кила.'
+    description: 'Холодостойкая. Главные враги — капустная муха, тля, кила.',
+    difficulty: 'medium',
+    sun: '☀️ Солнце',
+    water: '💧💧 Влаголюбивое'
   },
   {
     id: 'seed-kartofel',
@@ -47,7 +62,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Solanum tuberosum',
     category: 'vegetable',
     emoji: '🥔',
-    description: 'Основные угрозы — фитофтороз и колорадский жук. Требует окучивания.'
+    description: 'Основные угрозы — фитофтороз и колорадский жук. Требует окучивания.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-morkov',
@@ -55,7 +73,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Daucus carota',
     category: 'vegetable',
     emoji: '🥕',
-    description: 'Требует рыхлой почвы. Основной вредитель — морковная муха.'
+    description: 'Требует рыхлой почвы. Основной вредитель — морковная муха.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-luk',
@@ -63,7 +84,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Allium cepa',
     category: 'vegetable',
     emoji: '🧅',
-    description: 'Чувствителен к пероноспорозу при высокой влажности.'
+    description: 'Чувствителен к пероноспорозу при высокой влажности.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-chesnok',
@@ -71,7 +95,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Allium sativum',
     category: 'vegetable',
     emoji: '🧄',
-    description: 'Профилактика от ржавчины и фузариоза. Не поливать в дождь.'
+    description: 'Профилактика от ржавчины и фузариоза. Не поливать в дождь.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-kabachok',
@@ -79,7 +106,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Cucurbita pepo',
     category: 'vegetable',
     emoji: '🥦',
-    description: 'Быстрорастущий. Склонен к мучнистой росе.'
+    description: 'Быстрорастущий. Склонен к мучнистой росе.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-klubnika',
@@ -87,7 +117,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Fragaria × ananassa',
     category: 'berry',
     emoji: '🍓',
-    description: 'Требует полива в период плодоношения. Болезни — серая гниль, мучнистая роса.'
+    description: 'Требует полива в период плодоношения. Болезни — серая гниль, мучнистая роса.',
+    difficulty: 'medium',
+    sun: '☀️ Солнце',
+    water: '💧💧 Влаголюбивое'
   },
   {
     id: 'seed-vinograd',
@@ -95,7 +128,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Vitis vinifera',
     category: 'shrub',
     emoji: '🍇',
-    description: 'Требует обрезки и профилактики от милдью и оидиума.'
+    description: 'Требует обрезки и профилактики от милдью и оидиума.',
+    difficulty: 'hard',
+    sun: '☀️ Солнце',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-smorodina',
@@ -103,7 +139,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Ribes nigrum',
     category: 'shrub',
     emoji: '🫐',
-    description: 'Поражается почковым клещом и мучнистой росой.'
+    description: 'Поражается почковым клещом и мучнистой росой.',
+    difficulty: 'easy',
+    sun: '⛅ Полутень',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-malina',
@@ -111,7 +150,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Rubus idaeus',
     category: 'shrub',
     emoji: '🍒',
-    description: 'Требует обрезки отплодоносивших побегов. Вредители — малинный жук, тля.'
+    description: 'Требует обрезки отплодоносивших побегов. Вредители — малинный жук, тля.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧💧 Влаголюбивое'
   },
   {
     id: 'seed-yablonya',
@@ -119,7 +161,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Malus domestica',
     category: 'tree',
     emoji: '🍎',
-    description: 'Парша, монилиоз — основные болезни. Весенняя обработка обязательна.'
+    description: 'Парша, монилиоз — основные болезни. Весенняя обработка обязательна.',
+    difficulty: 'medium',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-grusha',
@@ -127,7 +172,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Pyrus communis',
     category: 'tree',
     emoji: '🍐',
-    description: 'Поражается паршой и огнёвкой. Весенняя обработка обязательна.'
+    description: 'Поражается паршой и огнёвкой. Весенняя обработка обязательна.',
+    difficulty: 'medium',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-vishnya',
@@ -135,7 +183,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Prunus cerasus',
     category: 'tree',
     emoji: '🍒',
-    description: 'Коккомикоз — главная угроза. Обработка после цветения.'
+    description: 'Коккомикоз — главная угроза. Обработка после цветения.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-abrikos',
@@ -143,7 +194,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Prunus armeniaca',
     category: 'tree',
     emoji: '🍑',
-    description: 'Теплолюбив. Главная угроза — весенние заморозки и подопревание коры.'
+    description: 'Теплолюбив. Главная угроза — весенние заморозки и подопревание коры.',
+    difficulty: 'medium',
+    sun: '☀️ Солнце',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-persik',
@@ -151,7 +205,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Prunus persica',
     category: 'tree',
     emoji: '🍑',
-    description: 'Требует ежегодной сильной обрезки. Уязвим к курчавости листьев.'
+    description: 'Требует ежегодной сильной обрезки. Уязвим к курчавости листьев.',
+    difficulty: 'hard',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-ukrop',
@@ -159,7 +216,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Anethum graveolens',
     category: 'herb',
     emoji: '🌿',
-    description: 'Требует регулярного полива. Практически не болеет.'
+    description: 'Требует регулярного полива. Практически не болеет.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-bazilik',
@@ -167,7 +227,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Ocimum basilicum',
     category: 'herb',
     emoji: '🌱',
-    description: 'Теплолюбив, боится заморозков. Может поражаться тлёй.'
+    description: 'Теплолюбив, боится заморозков. Может поражаться тлёй.',
+    difficulty: 'medium',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-petrushka',
@@ -175,7 +238,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Petroselinum crispum',
     category: 'herb',
     emoji: '🥬',
-    description: 'Регулярный полив, рыхление. Устойчива к большинству болезней.'
+    description: 'Регулярный полив, рыхление. Устойчива к большинству болезней.',
+    difficulty: 'easy',
+    sun: '⛅ Полутень',
+    water: '💧 Умеренный'
   },
   // Новые 25 культур:
   {
@@ -184,7 +250,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Hippophae rhamnoides',
     category: 'shrub',
     emoji: '🟠',
-    description: 'Ценная поливитаминная культура. Двудомное растение (нужен мужской и женский куст). Любит солнце и легкие почвы.'
+    description: 'Ценная поливитаминная культура. Двудомное растение (нужен мужской и женский куст). Любит солнце и легкие почвы.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-funduk',
@@ -192,7 +261,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Corylus avellana',
     category: 'shrub',
     emoji: '🌰',
-    description: 'Долговечный орехоплодный кустарник. Обожает влажную плодородную почву и перекрестное опыление разных сортов.'
+    description: 'Долговечный орехоплодный кустарник. Обожает влажную плодородную почву и перекрестное опыление разных сортов.',
+    difficulty: 'medium',
+    sun: '⛅ Полутень',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-zhimolost',
@@ -200,7 +272,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Lonicera caerulea',
     category: 'berry',
     emoji: '🫐',
-    description: 'Самая ранняя ягода в саду (созревает в мае). Сверхзимостойкая. Требует посадки 2-3 разных сортов для опыления.'
+    description: 'Самая ранняя ягода в саду (созревает в мае). Сверхзимостойкая. Требует посадки 2-3 разных сортов для опыления.',
+    difficulty: 'easy',
+    sun: '⛅ Полутень',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-kryzhovnik',
@@ -208,7 +283,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Ribes uva-crispa',
     category: 'berry',
     emoji: '🟢',
-    description: '«Северный виноград» с высоким содержанием сахаров и витамина С. Требует прореживающей обрезки и защиты от мучнистой росы.'
+    description: '«Северный виноград» с высоким содержанием сахаров и витамина С. Требует прореживающей обрезки и защиты от мучнистой росы.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-mushmula',
@@ -216,7 +294,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Mespilus germanica',
     category: 'tree',
     emoji: '🍊',
-    description: 'Теплолюбивое субтропическое дерево. Плоды приобретают сладкий вкус после первых заморозков или вылеживания.'
+    description: 'Теплолюбивое субтропическое дерево. Плоды приобретают сладкий вкус после первых заморозков или вылеживания.',
+    difficulty: 'hard',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-fistashki',
@@ -224,7 +305,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Pistacia vera',
     category: 'tree',
     emoji: '🥜',
-    description: 'Засухоустойчивая субтропическая культура. Требует жаркого лета, каменистой почвы и наличия разнополых деревьев.'
+    description: 'Засухоустойчивая субтропическая культура. Требует жаркого лета, каменистой почвы и наличия разнополых деревьев.',
+    difficulty: 'hard',
+    sun: '☀️ Солнце',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-ayva',
@@ -232,7 +316,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Cydonia oblonga',
     category: 'tree',
     emoji: '🍋',
-    description: 'Ароматные плоды, идеальные для варенья и запекания. Отличается высокой засухоустойчивостью и любовью к солнцу.'
+    description: 'Ароматные плоды, идеальные для варенья и запекания. Отличается высокой засухоустойчивостью и любовью к солнцу.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-granat',
@@ -240,7 +327,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Punica granatum',
     category: 'shrub',
     emoji: '🔴',
-    description: 'Субтропический кустарник с красивыми цветами и сочными зернами. Требует укрытия на зиму или выращивания в кадках.'
+    description: 'Субтропический кустарник с красивыми цветами и сочными зернами. Требует укрытия на зиму или выращивания в кадках.',
+    difficulty: 'hard',
+    sun: '☀️ Солнце',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-inzhir',
@@ -248,7 +338,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Ficus carica',
     category: 'shrub',
     emoji: '💜',
-    description: 'Смоковница. Даёт два урожая за сезон при теплой осени. В условиях Молдовы рекомендуется укрытие кустов на зиму.'
+    description: 'Смоковница. Даёт два урожая за сезон при теплой осени. В условиях Молдовы рекомендуется укрытие кустов на зиму.',
+    difficulty: 'hard',
+    sun: '☀️ Солнце',
+    water: '💧💧 Влаголюбивое'
   },
   {
     id: 'seed-kashtan',
@@ -256,7 +349,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Castanea sativa',
     category: 'tree',
     emoji: '🌰',
-    description: 'Крупное дерево с питательными крахмалистыми плодами. Предпочитает кислые, влажные почвы и мягкий климат.'
+    description: 'Крупное дерево с питательными крахмалистыми плодами. Предпочитает кислые, влажные почвы и мягкий климат.',
+    difficulty: 'medium',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-oreh-serdcevidny',
@@ -264,7 +360,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Juglans ailantifolia',
     category: 'tree',
     emoji: '🌰',
-    description: 'Японский орех с плодами в форме сердечка. Вкус нежный, без горечи. Дерево декоративно и устойчиво к болезням.'
+    description: 'Японский орех с плодами в форме сердечка. Вкус нежный, без горечи. Дерево декоративно и устойчиво к болезням.',
+    difficulty: 'medium',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-oreh-grecky',
@@ -272,7 +371,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Juglans regia',
     category: 'tree',
     emoji: '🌰',
-    description: 'Традиционная для Молдовы мощная культура. Требует много места на участке. Даёт густую тень и ценнейшие орехи.'
+    description: 'Традиционная для Молдовы мощная культура. Требует много места на участке. Даёт густую тень и ценнейшие орехи.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-mindal',
@@ -280,7 +382,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Prunus dulcis',
     category: 'tree',
     emoji: '🥜',
-    description: 'Раннецветущая культура. Очень светолюбив и засухоустойчив. Боится весенних возвратных заморозков во время цветения.'
+    description: 'Раннецветущая культура. Очень светолюбив и засухоустойчив. Боится весенних возвратных заморозков во время цветения.',
+    difficulty: 'medium',
+    sun: '☀️ Солнце',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-hurma',
@@ -288,7 +393,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Diospyros kaki',
     category: 'tree',
     emoji: '🟠',
-    description: 'Поздняя осенняя сладость. Требует теплого долгого лета и защиты от сильных зимних ветров. Нуждается в регулярном поливе.'
+    description: 'Поздняя осенняя сладость. Требует теплого долгого лета и защиты от сильных зимних ветров. Нуждается в регулярном поливе.',
+    difficulty: 'hard',
+    sun: '☀️ Солнце',
+    water: '💧💧 Влаголюбивое'
   },
   {
     id: 'seed-irga',
@@ -296,7 +404,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Amelanchier',
     category: 'berry',
     emoji: '🫐',
-    description: 'Сверхнеприхотливый ягодный кустарник с медовым вкусом плодов. Обожаема птицами. Устойчива к любым морозам.'
+    description: 'Сверхнеприхотливый ягодный кустарник с медовым вкусом плодов. Обожаема птицами. Устойчива к любым морозам.',
+    difficulty: 'easy',
+    sun: '⛅ Полутень',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-kivi',
@@ -304,7 +415,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Actinidia deliciosa',
     category: 'shrub',
     emoji: '🥝',
-    description: 'Мощная плодовая лиана. Требует прочной шпалеры, регулярного полива и наличия мужского растения-опылителя.'
+    description: 'Мощная плодовая лиана. Требует прочной шпалеры, регулярного полива и наличия мужского растения-опылителя.',
+    difficulty: 'hard',
+    sun: '☀️ Солнце',
+    water: '💧💧 Влаголюбивое'
   },
   {
     id: 'seed-shelkovica',
@@ -312,7 +426,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Morus alba',
     category: 'tree',
     emoji: '🍇',
-    description: 'Тутовник. Невероятно сладкие плоды, богатые калием и железом. Дерево засухоустойчиво и очень долговечно.'
+    description: 'Тутовник. Невероятно сладкие плоды, богатые калием и железом. Дерево засухоустойчиво и очень долговечно.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-cukkini',
@@ -320,7 +437,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Cucurbita pepo var. cylindrica',
     category: 'vegetable',
     emoji: '🥒',
-    description: 'Кустовая разновидность кабачка с нежной кожицей. Плодоносит непрерывно при регулярном сборе молодых плодов.'
+    description: 'Кустовая разновидность кабачка с нежной кожицей. Плодоносит непрерывно при регулярном сборе молодых плодов.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-redis',
@@ -328,7 +448,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Raphanus sativus',
     category: 'vegetable',
     emoji: '🔴',
-    description: 'Холодостойкая культура короткого светового дня. Для сочности и отсутствия горечи требует постоянной влажности почвы.'
+    description: 'Холодостойкая культура короткого светового дня. Для сочности и отсутствия горечи требует постоянной влажности почвы.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧💧 Влаголюбивое'
   },
   {
     id: 'seed-kukurusa',
@@ -336,7 +459,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Zea mays',
     category: 'vegetable',
     emoji: '🌽',
-    description: 'Теплолюбивая злаковая культура. Для полного опыления початков рекомендуется сажать блоком в 3-4 ряда.'
+    description: 'Теплолюбивая злаковая культура. Для полного опыления початков рекомендуется сажать блоком в 3-4 ряда.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-dynya',
@@ -344,7 +470,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Cucumis melo',
     category: 'vegetable',
     emoji: '🍈',
-    description: 'Требует максимума солнца и тепла. Для укрупнения плодов плети прищипывают после завязывания 3-4 дынь.'
+    description: 'Требует максимума солнца и тепла. Для укрупнения плодов плети прищипывают после завязывания 3-4 дынь.',
+    difficulty: 'medium',
+    sun: '☀️ Солнце',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-arbuz',
@@ -352,7 +481,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Citrullus lanatus',
     category: 'berry',
     emoji: '🍉',
-    description: 'Жаростойкая бахчевая культура. Обожает песчаные почвы и редкий, но очень глубокий полив под корень.'
+    description: 'Жаростойкая бахчевая культура. Обожает песчаные почвы и редкий, но очень глубокий полив под корень.',
+    difficulty: 'medium',
+    sun: '☀️ Солнце',
+    water: '💧 Засухоустойчивое'
   },
   {
     id: 'seed-chereshnya',
@@ -360,7 +492,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Prunus avium',
     category: 'tree',
     emoji: '🍒',
-    description: 'Раннее сладкое лакомство. Требует перекрестного опыления и защиты урожая от скворцов в период созревания.'
+    description: 'Раннее сладкое лакомство. Требует перекрестного опыления и защиты урожая от скворцов в период созревания.',
+    difficulty: 'medium',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-sliva',
@@ -368,7 +503,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Prunus domestica',
     category: 'tree',
     emoji: '🟣',
-    description: 'Традиционная культура садов Молдовы (чернослив). Уязвима к сливовой плодожорке и монилиозу.'
+    description: 'Традиционная культура садов Молдовы (чернослив). Уязвима к сливовой плодожорке и монилиозу.',
+    difficulty: 'easy',
+    sun: '☀️ Солнце',
+    water: '💧 Умеренный'
   },
   {
     id: 'seed-kizil',
@@ -376,7 +514,10 @@ export const SEED_PLANTS: Plant[] = [
     latin_name: 'Cornus mas',
     category: 'tree',
     emoji: '🔴',
-    description: 'Кустарник-долгожитель, зацветающий самым первым ранней весной. Плоды богаты пектином и фитонцидами.'
+    description: 'Кустарник-долгожитель, зацветающий самым первым ранней весной. Плоды богаты пектином и фитонцидами.',
+    difficulty: 'easy',
+    sun: '⛅ Полутень',
+    water: '💧 Засухоустойчивое'
   }
 ]
 

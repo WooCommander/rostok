@@ -51,11 +51,11 @@ const CATEGORY_EMOJI: Record<string, string> = {
 }
 
 const CARE_CONFIG: Record<string, { label: string; color: string }> = {
-  watering:   { label: 'Полив',      color: '#3b82f6' },
-  fertilizing:{ label: 'Подкормка', color: '#8B5E3C' },
-  spraying:   { label: 'Опрыскивание', color: '#2D6A4F' },
-  pruning:    { label: 'Обрезка',   color: '#9333ea' },
-  pest:       { label: 'От вредителей', color: '#E76F51' },
+  watering: { label: 'Полив', color: '#3b82f6' },
+  fertilizing: { label: 'Подкормка', color: '#8B5E3C' },
+  spraying: { label: 'Опрыскивание', color: '#2D6A4F' },
+  pruning: { label: 'Обрезка', color: '#9333ea' },
+  pest: { label: 'От вредителей', color: '#E76F51' },
 }
 
 function onScroll() {
@@ -138,14 +138,18 @@ const currentIndex = computed(() => {
 const hasPrev = computed(() => currentIndex.value > 0)
 const hasNext = computed(() => currentIndex.value !== -1 && currentIndex.value < allPlants.value.length - 1)
 
+const slideDirection = ref('slide-left')
+
 function goToNextPlant() {
   if (hasNext.value) {
+    slideDirection.value = 'slide-left'
     router.push(`/plants/${allPlants.value[currentIndex.value + 1].id}`)
   }
 }
 
 function goToPrevPlant() {
   if (hasPrev.value) {
+    slideDirection.value = 'slide-right'
     router.push(`/plants/${allPlants.value[currentIndex.value - 1].id}`)
   }
 }
@@ -204,21 +208,19 @@ function onTouchEnd(e: TouchEvent) {
     }
   }
 }
+
+function getDiffLabel(diff?: string): string {
+  if (diff === 'medium') return '🟡 Средне'
+  if (diff === 'hard') return '🔴 Сложно'
+  return '🟢 Легко'
+}
 </script>
 
 <template>
-  <div
-    class="plant-detail"
-    @touchstart="onTouchStart"
-    @touchmove="onTouchMove"
-    @touchend="onTouchEnd"
-  >
+  <div class="plant-detail" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
     <!-- PULL TO REFRESH BANNER -->
-    <div
-      v-if="pullDistance > 0 || isRefreshing"
-      class="pull-refresh-banner"
-      :style="{ transform: `translateY(${isRefreshing ? 0 : pullDistance - 48}px)` }"
-    >
+    <div v-if="pullDistance > 0 || isRefreshing" class="pull-refresh-banner"
+      :style="{ transform: `translateY(${isRefreshing ? 0 : pullDistance - 48}px)` }">
       <RefreshCw :size="18" :class="{ 'spin-anim': isRefreshing }" />
       <span>{{ isRefreshing ? 'Обновление данных...' : 'Отпустите для обновления' }}</span>
     </div>
@@ -226,7 +228,9 @@ function onTouchEnd(e: TouchEvent) {
     <!-- LOADING -->
     <template v-if="loading">
       <div class="detail-header skeleton-header">
-        <button class="icon-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
+        <button class="icon-btn" @click="router.back()">
+          <ArrowLeft :size="20" />
+        </button>
         <div class="skel skel-circle"></div>
         <div class="skel-col">
           <div class="skel skel-title"></div>
@@ -243,126 +247,134 @@ function onTouchEnd(e: TouchEvent) {
     <!-- ERROR -->
     <template v-else-if="error || !plant">
       <div class="detail-header" style="background: var(--color-error, #E76F51)">
-        <button class="icon-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
+        <button class="icon-btn" @click="router.back()">
+          <ArrowLeft :size="20" />
+        </button>
         <span style="color:white;font-size:15px">{{ error || 'Растение не найдено' }}</span>
       </div>
     </template>
 
     <!-- DATA -->
     <template v-else>
-      <div class="sticky-top-container" :class="{ 'is-scrolled': isScrolled }">
-        <div class="detail-header">
-          <button class="icon-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
-          <div class="detail-emoji">
-            {{ plant.emoji || CATEGORY_EMOJI[plant.category] || '🌱' }}
-          </div>
-          <div class="detail-names">
-            <h1 class="detail-name">{{ plant.name }}</h1>
-            <div class="detail-latin">{{ plant.latin_name }}</div>
-          </div>
-          <span class="detail-category">{{ CATEGORY_LABELS[plant.category] || plant.category }}</span>
-
-          <div class="header-actions">
-            <button
-              class="header-garden-btn"
-              :class="{ active: inGarden }"
-              :title="inGarden ? 'В моём саду' : 'Добавить в мой сад'"
-              @click="toggleGarden"
-            >
-              <BookmarkCheck v-if="inGarden" :size="20" />
-              <Bookmark v-else :size="20" />
-              <span class="btn-text">{{ inGarden ? 'В саду' : 'В сад' }}</span>
-            </button>
-
-            <!-- Кнопки навигации по каталогу -->
-            <div class="nav-buttons">
-              <button class="icon-btn nav-btn" :disabled="!hasPrev" @click="goToPrevPlant" title="Предыдущее растение">
-                <ChevronLeft :size="20" />
+      <Transition :name="slideDirection" mode="out-in">
+        <div :key="plant.id" class="transition-wrapper">
+          <div class="sticky-top-container" :class="{ 'is-scrolled': isScrolled }">
+            <div class="detail-header">
+              <button class="icon-btn" @click="router.back()">
+                <ArrowLeft :size="20" />
               </button>
-              <button class="icon-btn nav-btn" :disabled="!hasNext" @click="goToNextPlant" title="Следующее растение">
-                <ChevronRight :size="20" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="detail-subhead">
-          <p class="detail-desc">{{ plant.description }}</p>
-
-          <!-- Tabs switcher -->
-          <div class="tabs-wrap">
-            <button
-              class="tab-btn"
-              :class="{ active: activeTab === 'care' }"
-              @click="activeTab = 'care'"
-            >
-              Уход и календарь
-            </button>
-            <button
-              class="tab-btn"
-              :class="{ active: activeTab === 'secrets' }"
-              @click="activeTab = 'secrets'"
-            >
-              <Sparkles :size="16" />
-              Секреты урожая
-              <span v-if="secretsList.length" class="badge">{{ secretsList.length }}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="detail-body">
-        <div v-if="activeTab === 'care'" class="care-section">
-          <div class="section-title">Уход и обработка</div>
-
-          <div v-if="careList.length === 0" class="care-empty">
-            Рекомендации по уходу пока не добавлены
-          </div>
-
-          <div v-for="item in careList" :key="item.id" class="care-card">
-            <div
-              class="care-dot"
-              :style="{ background: CARE_CONFIG[item.care_type]?.color || '#2D6A4F' }"
-            ></div>
-            <div class="care-content">
-              <div class="care-label">{{ CARE_CONFIG[item.care_type]?.label || item.care_type }}</div>
-              <div class="care-text">{{ item.description }}</div>
-
-              <div v-if="item.products && item.products.length" class="care-products">
-                <span v-for="p in item.products" :key="p" class="product-tag" @click="goToProduct(p)">{{ p }}</span>
+              <div class="detail-emoji">
+                {{ plant.emoji || CATEGORY_EMOJI[plant.category] || '🌱' }}
               </div>
+              <div class="detail-names">
+                <h1 class="detail-name">{{ plant.name }}</h1>
+                <div class="detail-latin">{{ plant.latin_name }}</div>
+              </div>
+              <span class="detail-category">{{ CATEGORY_LABELS[plant.category] || plant.category }}</span>
 
-              <div class="care-meta">
-                <span class="care-months">📅 {{ formatMonths(item.month_from, item.month_to) }}</span>
-                <span v-if="item.frequency" class="care-freq">🔁 {{ item.frequency }}</span>
-                <span v-if="item.temp_min !== null || item.temp_max !== null" class="care-temp">
-                  🌡 {{ formatTemp(item.temp_min, item.temp_max) }}
+              <div class="header-actions">
+                <button class="header-garden-btn" :class="{ active: inGarden }"
+                  :title="inGarden ? 'В моём саду' : 'Добавить в мой сад'" @click="toggleGarden">
+                  <BookmarkCheck v-if="inGarden" :size="20" />
+                  <Bookmark v-else :size="20" />
+                  <span class="btn-text">{{ inGarden ? 'В саду' : 'В сад' }}</span>
+                </button>
+
+                <!-- Кнопки навигации по каталогу -->
+                <div class="nav-buttons">
+                  <button class="icon-btn nav-btn" :disabled="!hasPrev" @click="goToPrevPlant"
+                    title="Предыдущее растение">
+                    <ChevronLeft :size="20" />
+                  </button>
+                  <button class="icon-btn nav-btn" :disabled="!hasNext" @click="goToNextPlant"
+                    title="Следующее растение">
+                    <ChevronRight :size="20" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-subhead">
+              <div class="detail-requirements" v-if="plant.difficulty || plant.sun || plant.water">
+                <span v-if="plant.difficulty" class="req-badge" :class="plant.difficulty">
+                  {{ getDiffLabel(plant.difficulty) }}
+                </span>
+                <span class="req-pill" v-if="plant.sun" :title="plant.sun">
+                  <span class="req-icon">{{ plant.sun.split(' ')[0] }}</span>
+                  <span class="req-label">{{ plant.sun.split(' ').slice(1).join(' ') }}</span>
+                </span>
+                <span class="req-pill" v-if="plant.water" :title="plant.water">
+                  <span class="req-icon">{{ plant.water.split(' ')[0] }}</span>
+                  <span class="req-label">{{ plant.water.split(' ').slice(1).join(' ') }}</span>
                 </span>
               </div>
+              <p class="detail-desc">{{ plant.description }}</p>
+
+              <!-- Tabs switcher -->
+              <div class="tabs-wrap">
+                <button class="tab-btn" :class="{ active: activeTab === 'care' }" @click="activeTab = 'care'">
+                  Уход и календарь
+                </button>
+                <button class="tab-btn" :class="{ active: activeTab === 'secrets' }" @click="activeTab = 'secrets'">
+                  <Sparkles :size="16" />
+                  Секреты урожая
+                  <span v-if="secretsList.length" class="badge">{{ secretsList.length }}</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div v-else-if="activeTab === 'secrets'" class="secrets-section">
-          <div class="section-title">Принципы хорошего урожая</div>
+          <div class="detail-body">
+            <div v-if="activeTab === 'care'" class="care-section">
+              <div class="section-title">Уход и обработка</div>
 
-          <div v-if="secretsList.length === 0" class="care-empty">
-            Секреты для этой культуры скоро появятся!
-          </div>
+              <div v-if="careList.length === 0" class="care-empty">
+                Рекомендации по уходу пока не добавлены
+              </div>
 
-          <div v-for="secret in secretsList" :key="secret.id" class="secret-card">
-            <div class="secret-content">
-              <div class="secret-title">{{ secret.title }}</div>
-              <div class="secret-desc">{{ secret.description }}</div>
+              <div v-for="item in careList" :key="item.id" class="care-card">
+                <div class="care-dot" :style="{ background: CARE_CONFIG[item.care_type]?.color || '#2D6A4F' }"></div>
+                <div class="care-content">
+                  <div class="care-label">{{ CARE_CONFIG[item.care_type]?.label || item.care_type }}</div>
+                  <div class="care-text">{{ item.description }}</div>
+
+                  <div v-if="item.products && item.products.length" class="care-products">
+                    <span v-for="p in item.products" :key="p" class="product-tag" @click="goToProduct(p)">{{ p }}</span>
+                  </div>
+
+                  <div class="care-meta">
+                    <span class="care-months">📅 {{ formatMonths(item.month_from, item.month_to) }}</span>
+                    <span v-if="item.frequency" class="care-freq">🔁 {{ item.frequency }}</span>
+                    <span v-if="item.temp_min !== null || item.temp_max !== null" class="care-temp">
+                      🌡 {{ formatTemp(item.temp_min, item.temp_max) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            <div v-else-if="activeTab === 'secrets'" class="secrets-section">
+              <div class="section-title">Принципы хорошего урожая</div>
+
+              <div v-if="secretsList.length === 0" class="care-empty">
+                Секреты для этой культуры скоро появятся!
+              </div>
+
+              <div v-for="secret in secretsList" :key="secret.id" class="secret-card">
+                <div class="secret-content">
+                  <div class="secret-title">{{ secret.title }}</div>
+                  <div class="secret-desc">{{ secret.description }}</div>
+                </div>
+              </div>
+            </div>
+
+            <button class="add-log-btn" @click="router.push('/journal/add')">
+              <Plus :size="18" />
+              Добавить обработку в журнал
+            </button>
           </div>
         </div>
-
-        <button class="add-log-btn" @click="router.push('/journal/add')">
-          <Plus :size="18" />
-          Добавить обработку в журнал
-        </button>
-      </div>
+      </Transition>
     </template>
 
   </div>
@@ -380,7 +392,7 @@ function onTouchEnd(e: TouchEvent) {
 /* ── PULL TO REFRESH BANNER ── */
 .pull-refresh-banner {
   position: fixed;
-  top: calc(56px + env(safe-area-inset-top, 0px));
+  // top: calc(56px + env(safe-area-inset-top, 0px));
   left: 0;
   right: 0;
   height: 48px;
@@ -401,14 +413,17 @@ function onTouchEnd(e: TouchEvent) {
     animation: spin 1s linear infinite;
   }
 }
+
 @keyframes spin {
-  100% { transform: rotate(360deg); }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── STICKY TOP CONTAINER ── */
 .sticky-top-container {
   position: sticky;
-  top: calc(56px + env(safe-area-inset-top, 0px));
+  // top: calc(56px + env(safe-area-inset-top, 0px));
   z-index: 100;
   background: var(--color-background);
   border-bottom: 1px solid transparent;
@@ -446,13 +461,25 @@ function onTouchEnd(e: TouchEvent) {
   flex-shrink: 0;
   transition: background 0.15s;
 
-  &:hover:not(:disabled) { background: rgba(255, 255, 255, 0.3); }
-  &:disabled { opacity: 0.3; cursor: default; }
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
 }
 
-.detail-emoji { font-size: 36px; flex-shrink: 0; }
+.detail-emoji {
+  font-size: 36px;
+  flex-shrink: 0;
+}
 
-.detail-names { flex: 1; min-width: 0; }
+.detail-names {
+  flex: 1;
+  min-width: 0;
+}
 
 .detail-name {
   font-size: 22px;
@@ -504,7 +531,10 @@ function onTouchEnd(e: TouchEvent) {
   font-weight: 600;
   transition: all 0.15s;
 
-  &:hover { background: rgba(255, 255, 255, 0.3); }
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
   &.active {
     background: white;
     color: var(--color-primary);
@@ -517,7 +547,87 @@ function onTouchEnd(e: TouchEvent) {
   background: var(--color-background);
 }
 
-.detail-body { padding: 16px; }
+.detail-requirements {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+
+  .req-badge {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+
+    &.easy {
+      background: rgba(34, 197, 94, 0.15);
+      color: #15803d;
+      border: 1px solid rgba(34, 197, 94, 0.25);
+    }
+
+    &.medium {
+      background: rgba(234, 179, 8, 0.15);
+      color: #a16207;
+      border: 1px solid rgba(234, 179, 8, 0.25);
+    }
+
+    &.hard {
+      background: rgba(239, 68, 68, 0.15);
+      color: #b91c1c;
+      border: 1px solid rgba(239, 68, 68, 0.25);
+    }
+  }
+
+  .req-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    padding: 4px 10px;
+    border-radius: var(--radius-md);
+
+    .req-icon {
+      font-size: 14px;
+    }
+  }
+}
+
+/* Slide transitions */
+.slide-left-enter-active,
+.slide-left-leave-active,
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.slide-left-enter-from {
+  opacity: 0;
+  transform: translateX(40px);
+}
+
+.slide-left-leave-to {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+
+.slide-right-enter-from {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+
+.slide-right-leave-to {
+  opacity: 0;
+  transform: translateX(40px);
+}
+
+.detail-body {
+  padding: 16px;
+}
 
 .detail-desc {
   font-size: 14px;
@@ -535,6 +645,7 @@ function onTouchEnd(e: TouchEvent) {
   padding: 4px;
   margin-bottom: 0;
 }
+
 .tab-btn {
   flex: 1;
   padding: 12px;
@@ -565,7 +676,10 @@ function onTouchEnd(e: TouchEvent) {
 }
 
 /* ── SECRETS SECTION ── */
-.secrets-section { margin-bottom: 20px; }
+.secrets-section {
+  margin-bottom: 20px;
+}
+
 .secret-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -575,13 +689,18 @@ function onTouchEnd(e: TouchEvent) {
   margin-bottom: 12px;
   box-shadow: var(--shadow-sm);
 }
-.secret-content { min-width: 0; }
+
+.secret-content {
+  min-width: 0;
+}
+
 .secret-title {
   font-size: 16px;
   font-weight: 700;
   color: var(--color-text-primary);
   margin-bottom: 6px;
 }
+
 .secret-desc {
   font-size: 14px;
   color: var(--color-text-secondary);
@@ -590,7 +709,9 @@ function onTouchEnd(e: TouchEvent) {
 }
 
 /* ── CARE SECTION ── */
-.care-section { margin-bottom: 20px; }
+.care-section {
+  margin-bottom: 20px;
+}
 
 .section-title {
   font-size: 12px;
@@ -627,7 +748,9 @@ function onTouchEnd(e: TouchEvent) {
   margin-top: 4px;
 }
 
-.care-content { flex: 1; }
+.care-content {
+  flex: 1;
+}
 
 .care-label {
   font-size: 14px;
@@ -653,7 +776,7 @@ function onTouchEnd(e: TouchEvent) {
 
 .product-tag {
   font-size: 11px;
-  background: var(--color-primary-subtle, rgba(45,106,79,0.1));
+  background: var(--color-primary-subtle, rgba(45, 106, 79, 0.1));
   color: var(--color-primary);
   padding: 4px 10px;
   border-radius: 20px;
@@ -683,7 +806,9 @@ function onTouchEnd(e: TouchEvent) {
   color: var(--color-text-secondary);
 }
 
-.care-months { color: var(--color-primary); }
+.care-months {
+  color: var(--color-primary);
+}
 
 /* ── ADD BUTTON ── */
 .add-log-btn {
@@ -702,14 +827,18 @@ function onTouchEnd(e: TouchEvent) {
   cursor: pointer;
   transition: opacity 0.15s;
 
-  &:active { opacity: 0.85; }
+  &:active {
+    opacity: 0.85;
+  }
 }
 
 /* ── SKELETONS ── */
-.skeleton-header { background: var(--color-primary); }
+.skeleton-header {
+  background: var(--color-primary);
+}
 
 .skel {
-  background: linear-gradient(90deg, rgba(255,255,255,0.12) 25%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.12) 75%);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.12) 25%, rgba(255, 255, 255, 0.22) 50%, rgba(255, 255, 255, 0.12) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
   border-radius: 8px;
@@ -721,16 +850,53 @@ function onTouchEnd(e: TouchEvent) {
 }
 
 @keyframes shimmer {
-  0%   { background-position: 200% 0 }
-  100% { background-position: -200% 0 }
+  0% {
+    background-position: 200% 0
+  }
+
+  100% {
+    background-position: -200% 0
+  }
 }
 
-.skel-circle  { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
-.skel-col     { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-.skel-title   { height: 20px; width: 60%; }
-.skel-sub     { height: 13px; width: 40%; }
-.skel-text    { height: 14px; width: 100%; }
-.skel-card    { height: 80px; }
-.mb-4  { margin-bottom: 4px; }
-.mb-8  { margin-bottom: 8px; }
+.skel-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skel-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skel-title {
+  height: 20px;
+  width: 60%;
+}
+
+.skel-sub {
+  height: 13px;
+  width: 40%;
+}
+
+.skel-text {
+  height: 14px;
+  width: 100%;
+}
+
+.skel-card {
+  height: 80px;
+}
+
+.mb-4 {
+  margin-bottom: 4px;
+}
+
+.mb-8 {
+  margin-bottom: 8px;
+}
 </style>

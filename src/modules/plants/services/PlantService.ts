@@ -9,6 +9,9 @@ export interface Plant {
   category: 'vegetable' | 'berry' | 'tree' | 'shrub' | 'herb'
   description: string
   emoji: string
+  difficulty?: 'easy' | 'medium' | 'hard'
+  sun?: string
+  water?: string
 }
 
 export interface PlantSecret {
@@ -45,6 +48,16 @@ export interface PlantCare {
   frequency: string
 }
 
+function enrichPlant(p: Plant): Plant {
+  const seed = SEED_PLANTS.find(s => s.name === p.name || s.id === p.id)
+  return {
+    ...p,
+    difficulty: p.difficulty || seed?.difficulty || 'easy',
+    sun: p.sun || seed?.sun || '☀️ Солнце',
+    water: p.water || seed?.water || '💧 Умеренный'
+  }
+}
+
 export const PlantService = {
   async getAll(): Promise<Plant[]> {
     let remotePlants: Plant[] = []
@@ -59,15 +72,16 @@ export const PlantService = {
     } catch (_) {}
 
     const map = new Map<string, Plant>()
-    SEED_PLANTS.forEach(p => map.set(p.name, p))
-    remotePlants.forEach(p => map.set(p.name, p))
+    SEED_PLANTS.forEach(p => map.set(p.name, enrichPlant(p)))
+    remotePlants.forEach(p => map.set(p.name, enrichPlant(p)))
 
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name))
   },
 
   async getById(id: string): Promise<Plant | null> {
     if (id.startsWith('seed-')) {
-      return SEED_PLANTS.find(p => p.id === id) || null
+      const found = SEED_PLANTS.find(p => p.id === id)
+      return found ? enrichPlant(found) : null
     }
     try {
       const { data, error } = await supabase
@@ -75,10 +89,11 @@ export const PlantService = {
         .select('*')
         .eq('id', id)
         .single()
-      if (!error && data) return data
+      if (!error && data) return enrichPlant(data)
     } catch (_) {}
 
-    return SEED_PLANTS.find(p => p.id === id || p.name === id) || null
+    const found = SEED_PLANTS.find(p => p.id === id || p.name === id)
+    return found ? enrichPlant(found) : null
   },
 
   async getCareForPlant(plantId: string): Promise<PlantCare[]> {
@@ -155,13 +170,17 @@ export const PlantService = {
     })
 
     const localWithPlants = localCare.map(c => {
-      const plant = SEED_PLANTS.find(p => p.id === c.plant_id) || {
+      const found = SEED_PLANTS.find(p => p.id === c.plant_id)
+      const plant = found ? enrichPlant(found) : {
         id: c.plant_id,
         name: 'Растение',
         latin_name: '',
         category: 'vegetable' as const,
         emoji: '🌱',
-        description: ''
+        description: '',
+        difficulty: 'easy' as const,
+        sun: '☀️ Солнце',
+        water: '💧 Умеренный'
       }
       return { ...c, plant }
     })
@@ -169,6 +188,9 @@ export const PlantService = {
     const all = [...remote, ...localWithPlants]
     const map = new Map<string, PlantCare & { plant: Plant }>()
     all.forEach(item => {
+      if (item.plant) {
+        item.plant = enrichPlant(item.plant)
+      }
       map.set(`${item.plant?.name}-${item.description}`, item)
     })
 
@@ -189,8 +211,10 @@ export const PlantService = {
       if (!item.plant) {
         const seedPlant = SEED_PLANTS.find(p => p.id === item.plant_id || p.name === item.plant_id)
         if (seedPlant) {
-          return { ...item, plant: seedPlant }
+          return { ...item, plant: enrichPlant(seedPlant) }
         }
+      } else {
+        return { ...item, plant: enrichPlant(item.plant) }
       }
       return item
     })
@@ -234,6 +258,9 @@ export const PlantService = {
       .select('*, plant:plants(*)')
       .single()
     if (error) throw error
+    if (data && data.plant) {
+      data.plant = enrichPlant(data.plant)
+    }
     return data
   },
 
@@ -254,6 +281,9 @@ export const PlantService = {
       .select('*, plant:plants(*)')
       .single()
     if (error) throw error
+    if (data && data.plant) {
+      data.plant = enrichPlant(data.plant)
+    }
     return data
   },
 

@@ -50,7 +50,9 @@ onMounted(() => {
 
     <template v-if="loading">
       <div class="detail-header skeleton-header">
-        <button class="back-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
+        <button class="back-btn" @click="router.back()">
+          <ArrowLeft :size="20" />
+        </button>
         <div class="skel skel-circle"></div>
         <div class="skel-col">
           <div class="skel skel-title"></div>
@@ -65,11 +67,14 @@ onMounted(() => {
 
     <template v-else-if="error || !product">
       <div class="detail-header error-header">
-        <button class="back-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
+        <button class="back-btn" @click="router.back()">
+          <ArrowLeft :size="20" />
+        </button>
         <h2>{{ error || 'Препарат не найден' }}</h2>
       </div>
       <div class="detail-body empty-state">
-        <p>Мы не смогли найти информацию о данном препарате. Вы можете вернуться в полный справочник и воспользоваться поиском.</p>
+        <p>Мы не смогли найти информацию о данном препарате. Вы можете вернуться в полный справочник и воспользоваться
+          поиском.</p>
         <button class="action-btn" @click="router.push('/products')">Перейти в справочник</button>
       </div>
     </template>
@@ -77,17 +82,16 @@ onMounted(() => {
     <template v-else>
       <div class="sticky-top-container">
         <div class="detail-header">
-          <button class="back-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
+          <button class="back-btn" @click="router.back()">
+            <ArrowLeft :size="20" />
+          </button>
           <div class="header-icon">{{ product.icon }}</div>
           <div class="header-info">
             <h1 class="product-name">{{ product.name }}</h1>
-            <span 
-              class="cat-badge"
-              :style="{ 
-                backgroundColor: CATEGORY_INFO[product.category]?.bg, 
-                color: CATEGORY_INFO[product.category]?.color 
-              }"
-            >
+            <span class="cat-badge" :style="{
+              backgroundColor: CATEGORY_INFO[product.category]?.bg,
+              color: CATEGORY_INFO[product.category]?.color
+            }">
               {{ CATEGORY_INFO[product.category]?.label || product.category }}
             </span>
           </div>
@@ -101,7 +105,8 @@ onMounted(() => {
             <Clock class="meta-icon" :size="20" />
             <div class="meta-text-col">
               <span class="meta-label">Срок ожидания до сбора урожая:</span>
-              <span class="meta-val">{{ product.waiting_period_days === 0 ? 'Без ограничений (0 дней)' : product.waiting_period_days + ' дней' }}</span>
+              <span class="meta-val">{{ product.waiting_period_days === 0 ? 'Без ограничений (0 дней)' :
+                product.waiting_period_days + ' дней' }}</span>
             </div>
           </div>
 
@@ -151,12 +156,7 @@ onMounted(() => {
           </div>
           <p class="analogues-hint">Нажмите на препарат-аналог для перехода к его карточке (если он есть в базе):</p>
           <div class="analogues-tags">
-            <button
-              v-for="an in product.analogues"
-              :key="an"
-              class="analogue-tag"
-              @click="goToAnalogue(an)"
-            >
+            <button v-for="an in product.analogues" :key="an" class="analogue-tag" @click="goToAnalogue(an)">
               {{ an }}
             </button>
           </div>
@@ -197,12 +197,20 @@ onMounted(() => {
   align-items: center;
   gap: 16px;
 
-  &.error-header { background: var(--color-error, #E76F51); color: white; }
-  h2 { margin: 0; font-size: 20px; font-weight: 700; }
+  &.error-header {
+    background: var(--color-error, #E76F51);
+    color: white;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+  }
 }
 
 .back-btn {
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   border: none;
   border-radius: 10px;
   color: white;
@@ -214,14 +222,17 @@ onMounted(() => {
   cursor: pointer;
   flex-shrink: 0;
   transition: background 0.15s;
-  &:hover { background: rgba(255,255,255,0.3); }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
 }
 
 .header-icon {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-md);
-  background: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -284,8 +295,13 @@ onMounted(() => {
   align-items: center;
   gap: 14px;
 
-  &.wait-time .meta-icon { color: var(--color-primary); }
-  &.hazard .meta-icon { color: var(--color-error, #E76F51); }
+  &.wait-time .meta-icon {
+    color: var(--color-primary);
+  }
+
+  &.hazard .meta-icon {
+    color: var(--color-error, #E76F51);
+  }
 }
 
 .meta-icon {
@@ -303,8 +319,17 @@ onMounted(() => {
   gap: 2px;
 }
 
-.meta-label { font-size: 12px; color: var(--color-text-secondary); font-weight: 600; }
-.meta-val { font-size: 15px; font-weight: 700; color: var(--color-text-primary); }
+.meta-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.meta-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
 
 /* ── SECTION CARDS ── */
 .section-card {
@@ -314,8 +339,13 @@ onMounted(() => {
   padding: 20px;
   box-shadow: var(--shadow-sm);
 
-  &.active-ing-card { border-left: 4px solid var(--color-primary); }
-  &.dosage-card { border-left: 4px solid var(--color-warn, #F4A261); }
+  &.active-ing-card {
+    border-left: 4px solid var(--color-primary);
+  }
+
+  &.dosage-card {
+    border-left: 4px solid var(--color-warn, #F4A261);
+  }
 }
 
 .card-head {
@@ -324,9 +354,20 @@ onMounted(() => {
   gap: 10px;
   margin-bottom: 12px;
 
-  h3 { margin: 0; font-size: 17px; font-weight: 700; color: var(--color-text-primary); }
-  .card-head-icon { color: var(--color-primary); }
-  .warning-icon { color: var(--color-warn, #F4A261); }
+  h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
+
+  .card-head-icon {
+    color: var(--color-primary);
+  }
+
+  .warning-icon {
+    color: var(--color-warn, #F4A261);
+  }
 }
 
 .ing-text {
@@ -350,7 +391,11 @@ onMounted(() => {
   font-size: 15px;
   line-height: 1.6;
   color: var(--color-text-primary);
-  p { margin: 0; white-space: pre-line; }
+
+  p {
+    margin: 0;
+    white-space: pre-line;
+  }
 }
 
 .analogues-hint {
@@ -400,12 +445,36 @@ onMounted(() => {
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
-  &:hover { background: var(--color-surface-hover); }
+
+  &:hover {
+    background: var(--color-surface-hover);
+  }
 }
 
 /* ── SKELETONS & EMPTY ── */
-.skeleton-header { background: var(--color-primary); height: 80px; }
-.skel-box { height: 160px; background: var(--color-surface); border-radius: var(--radius-lg); }
-.empty-state { text-align: center; padding: 48px 20px; }
-.action-btn { background: var(--color-primary); color: white; border: none; padding: 12px 24px; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; }
+.skeleton-header {
+  background: var(--color-primary);
+  height: 80px;
+}
+
+.skel-box {
+  height: 160px;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 20px;
+}
+
+.action-btn {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+}
 </style>
