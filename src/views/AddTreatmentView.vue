@@ -8,6 +8,7 @@ import { JournalService, type NewTreatmentEntry, type TreatedPlant } from '@/mod
 import { WeatherService } from '@/modules/weather/services/WeatherService'
 import { ReminderService } from '@/modules/reminders'
 import { ProductService, type ProductItem } from '@/modules/products/services/ProductService'
+import { PushNotificationService } from '@/modules/notifications'
 
 const router = useRouter()
 const route = useRoute()
@@ -209,6 +210,7 @@ async function save() {
           remindAtDate
         })
       }
+      await PushNotificationService.scheduleActiveReminders()
     }
 
     router.push('/journal')

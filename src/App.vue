@@ -7,6 +7,7 @@ import AppUpdateProgressModal from '@/design-system/components/AppUpdateProgress
 import { DeviceService } from '@/app/services/DeviceService'
 import { AppUpdateService, type AppUpdateMeta } from '@/app/services/AppUpdateService'
 import { changelog } from '@/data/changelog'
+import { PushNotificationService } from '@/modules/notifications'
 
 const { initTheme } = useTheme()
 
@@ -17,6 +18,7 @@ const currentVersion = changelog[0]?.version || '1.2.0'
 onMounted(async () => {
   initTheme()
   DeviceService.initStatusBar()
+  PushNotificationService.scheduleActiveReminders()
   
   const meta = await AppUpdateService.checkForUpdates(currentVersion)
   if (meta) {

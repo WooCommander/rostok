@@ -9,6 +9,7 @@ import { WeatherService } from '@/modules/weather/services/WeatherService'
 import { changelog } from '@/data/changelog'
 import { useTipsState, TipOfTheDayModal } from '@/modules/tips'
 import type { TipUiModel } from '@/modules/tips/adapters/TipsAdapter'
+import { NotificationSettingsCard } from '@/modules/notifications'
 
 const router = useRouter()
 const { isDark, toggleTheme } = useTheme()
@@ -186,6 +187,12 @@ async function logout() {
       </div>
 
       <div v-if="saved" class="saved-badge">✓ Сохранено</div>
+    </div>
+
+    <!-- Уведомления -->
+    <div class="section">
+      <div class="section-title">Уведомления</div>
+      <NotificationSettingsCard />
     </div>
 
     <!-- Appearance -->
