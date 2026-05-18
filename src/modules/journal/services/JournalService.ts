@@ -1,10 +1,18 @@
 import { supabase } from '@/api/supabase'
 
+export interface TreatedPlant {
+  id: string
+  name: string
+  emoji: string
+  location_note?: string
+}
+
 export interface TreatmentEntry {
   id: string
   user_id: string
   plant_id: string | null
   user_plant_id: string | null
+  plants_data?: TreatedPlant[] | null
   treated_at: string
   care_type: string
   product: string | null
@@ -19,6 +27,7 @@ export interface TreatmentEntry {
 export interface NewTreatmentEntry {
   plant_id?: string | null
   user_plant_id?: string | null
+  plants_data?: TreatedPlant[]
   treated_at: string
   care_type: string
   product?: string

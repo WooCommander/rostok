@@ -4,7 +4,7 @@ import { ArrowLeft, Check, ChevronDown, X } from 'lucide-vue-next'
 import { useRouter, useRoute } from 'vue-router'
 import FpMobilePicker from '@/design-system/components/FpMobilePicker.vue'
 import { PlantService, type Plant, type UserPlant } from '@/modules/plants/services/PlantService'
-import { JournalService, type NewTreatmentEntry } from '@/modules/journal/services/JournalService'
+import { JournalService, type NewTreatmentEntry, type TreatedPlant } from '@/modules/journal/services/JournalService'
 import { WeatherService } from '@/modules/weather/services/WeatherService'
 import { ReminderService } from '@/modules/reminders'
 import { ProductService, type ProductItem } from '@/modules/products/services/ProductService'
@@ -23,7 +23,29 @@ const saving = ref(false)
 
 const isEditing = computed(() => !!route.params.id)
 const allProducts = ref<ProductItem[]>([])
-const productItems = computed(() => allProducts.value.map(p => ({ id: p.id, name: p.name })))
+const productItems = computed(() => {
+  let filtered = allProducts.value
+  
+  if (form.value.type === 'fertilizing') {
+    filtered = filtered.filter(p => p.category === 'fertilizer' || p.category === 'bio')
+  } else if (form.value.type === 'spraying') {
+    filtered = filtered.filter(p => p.category !== 'fertilizer')
+  }
+
+  return filtered.map(p => {
+    let typeName = ''
+    if (p.category === 'fungicide') typeName = 'Фунгицид'
+    else if (p.category === 'insecticide') typeName = 'Инсектицид'
+    else if (p.category === 'fertilizer') typeName = 'Удобрение'
+    else if (p.category === 'bio') typeName = 'Биопрепарат'
+
+    return { 
+      id: p.id, 
+      name: p.name, 
+      subtitle: typeName ? `${typeName} • ${p.active_ingredient}` : p.active_ingredient 
+    }
+  })
+})
 
 const showPlantsModal = ref(false)
 
@@ -54,10 +76,10 @@ const selectedPlantsText = computed(() => {
   if (count === 1) {
      const sid = form.value.selected_ids[0]
      if (sid.startsWith('u_')) {
-        const u = userPlantsList.value.find(x => x.id === sid.slice(2))
+        const u = userPlantsList.value.find(x => String(x.id) === String(sid.slice(2)))
         return u ? `${u.plant?.emoji} ${u.nickname || u.plant?.name}` : '1 растение'
      } else {
-        const p = plants.value.find(x => x.id === sid.slice(2))
+        const p = plants.value.find(x => String(x.id) === String(sid.slice(2)))
         return p ? `${p.emoji} ${p.name}` : '1 растение'
      }
   }
@@ -97,7 +119,9 @@ onMounted(async () => {
         form.value.note = entry.notes || ''
         form.value.date = entry.treated_at
         
-        if (entry.user_plant_id) {
+        if (entry.plants_data && entry.plants_data.length > 0) {
+          form.value.selected_ids = entry.plants_data.map(p => p.id)
+        } else if (entry.user_plant_id) {
           form.value.selected_ids = ['u_' + entry.user_plant_id]
         } else if (entry.plant_id) {
           form.value.selected_ids = ['p_' + entry.plant_id]
@@ -123,42 +147,44 @@ async function save() {
   if (form.value.selected_ids.length === 0) return
   saving.value = true
 
-  const entriesToSave: NewTreatmentEntry[] = form.value.selected_ids.map(sid => {
+  const treatedPlants: TreatedPlant[] = form.value.selected_ids.map(sid => {
     const isU = sid.startsWith('u_')
     const idVal = sid.slice(2)
-    let plantId = ''
-    let userPlantId: string | null = null
-
     if (isU) {
-      userPlantId = idVal
-      const uPlant = userPlantsList.value.find(u => u.id === idVal)
-      if (uPlant) plantId = uPlant.plant_id
+      const u = userPlantsList.value.find(x => String(x.id) === String(idVal))
+      return {
+        id: sid,
+        name: u?.nickname || u?.plant?.name || 'Растение',
+        emoji: u?.plant?.emoji || '🌱',
+        location_note: u?.location_note || undefined
+      }
     } else {
-      plantId = idVal
+      const p = plants.value.find(x => String(x.id) === String(idVal))
+      return {
+        id: sid,
+        name: p?.name || 'Растение',
+        emoji: p?.emoji || '🌱'
+      }
     }
+  })
 
-    return {
-      plant_id: plantId,
-      user_plant_id: userPlantId,
-      treated_at: form.value.date,
-      care_type: form.value.type,
-      product: form.value.product || undefined,
-      dose: form.value.dose || undefined,
-      temperature: form.value.temp ? parseFloat(form.value.temp) : null,
-      notes: form.value.note || undefined
-    }
-  }).filter(e => e.plant_id)
-
-  if (entriesToSave.length === 0) {
-    saving.value = false
-    return
+  const newEntry: NewTreatmentEntry = {
+    plant_id: treatedPlants[0]?.id.startsWith('p_') ? treatedPlants[0].id.slice(2) : null,
+    user_plant_id: treatedPlants[0]?.id.startsWith('u_') ? treatedPlants[0].id.slice(2) : null,
+    plants_data: treatedPlants,
+    treated_at: form.value.date,
+    care_type: form.value.type,
+    product: form.value.product || undefined,
+    dose: form.value.dose || undefined,
+    temperature: form.value.temp ? parseFloat(form.value.temp) : null,
+    notes: form.value.note || undefined
   }
 
   try {
     if (isEditing.value) {
-      await JournalService.update(route.params.id as string, entriesToSave[0])
+      await JournalService.update(route.params.id as string, newEntry)
     } else {
-      await JournalService.add(entriesToSave)
+      await JournalService.add(newEntry)
     }
 
     if (enableReminder.value && reminderDays.value > 0) {
@@ -166,11 +192,17 @@ async function save() {
       targetDate.setDate(targetDate.getDate() + reminderDays.value)
       const remindAtDate = targetDate.toISOString().split('T')[0]
 
-      for (const e of entriesToSave) {
-        if (!e.plant_id) continue
+      for (const tp of treatedPlants) {
+        const isU = tp.id.startsWith('u_')
+        const rawId = tp.id.slice(2)
+        let plantIdForRem = rawId
+        if (isU) {
+          const u = userPlantsList.value.find(x => String(x.id) === String(rawId))
+          if (u && u.plant_id) plantIdForRem = u.plant_id
+        }
         await ReminderService.addReminder({
-          plantId: e.plant_id,
-          userPlantId: e.user_plant_id || null,
+          plantId: plantIdForRem,
+          userPlantId: isU ? rawId : null,
           careType: form.value.type,
           product: form.value.product || undefined,
           dose: form.value.dose || undefined,
@@ -221,10 +253,10 @@ async function save() {
       </div>
 
       <div class="field" v-if="form.type !== 'watering' && form.type !== 'pruning'">
+        <label class="field-label">Препарат / удобрение</label>
         <FpMobilePicker
           v-model="form.product"
           :items="productItems"
-          label="Препарат / удобрение"
           placeholder="Поиск или ввод нового..."
           allow-create
           create-label="Добавить новый:"
@@ -252,9 +284,14 @@ async function save() {
       <div class="field reminder-field" v-if="form.type === 'fertilizing' || form.type === 'spraying'">
         <label class="field-label">⏰ Напоминание о повторной обработке</label>
         <div class="reminder-options">
-          <button class="rem-btn" :class="{ active: !enableReminder }" @click="enableReminder = false">Не нужно</button>
-          <button class="rem-btn" :class="{ active: enableReminder && reminderDays === 14 }" @click="enableReminder = true; reminderDays = 14">Через 14 дней</button>
-          <button class="rem-btn" :class="{ active: enableReminder && reminderDays === 21 }" @click="enableReminder = true; reminderDays = 21">Через 21 день</button>
+          <button class="rem-btn" :class="{ active: !enableReminder }" @click="enableReminder = false">Нет</button>
+          <button class="rem-btn" :class="{ active: enableReminder && reminderDays === 7 }" @click="enableReminder = true; reminderDays = 7">7 дн</button>
+          <button class="rem-btn" :class="{ active: enableReminder && reminderDays === 14 }" @click="enableReminder = true; reminderDays = 14">14 дн</button>
+        </div>
+        <div v-if="enableReminder" style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 13px; color: var(--color-text-secondary);">Через:</span>
+          <input type="number" v-model="reminderDays" class="field-input" style="width: 80px; padding: 8px; text-align: center;" min="1" max="365" />
+          <span style="font-size: 13px; color: var(--color-text-secondary);">дней</span>
         </div>
       </div>
 
@@ -324,11 +361,11 @@ async function save() {
 .plants-selector-trigger {
   width: 100%; border: 1.5px solid var(--color-border); border-radius: 12px;
   background: var(--color-surface); height: 48px; padding: 0 12px 0 14px;
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
   cursor: pointer; transition: border-color 0.2s;
   &:active { border-color: var(--color-primary); }
-  .trigger-value { font-size: 15px; font-weight: 600; color: var(--color-text-primary); }
-  .chevron { color: var(--color-text-secondary); }
+  .trigger-value { flex: 1; font-size: 15px; font-weight: 600; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chevron { color: var(--color-text-secondary); flex-shrink: 0; }
 }
 .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .type-btn {

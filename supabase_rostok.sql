@@ -47,6 +47,7 @@ create table if not exists treatment_log (
   user_id uuid references auth.users(id) on delete cascade,
   plant_id uuid references plants(id),
   user_plant_id uuid references user_plants(id),
+  plants_data jsonb default '[]'::jsonb,
   treated_at date not null default current_date,
   care_type text not null,
   product text,

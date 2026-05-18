@@ -85,7 +85,7 @@ watch(searchQuery, (q) => {
         <div class="picker-trigger" @click="openPicker">
             <div v-if="label" class="trigger-label" :class="{ 'has-value': modelValue || variant === 'bordered' }">{{
                 label }}</div>
-            <div class="trigger-value">{{ modelValue || (label && !modelValue ? '' : placeholder) }}</div>
+            <div class="trigger-value">{{ modelValue || (label && variant !== 'bordered' ? '' : placeholder || '\u00A0') }}</div>
             <div class="chevron">
                 <ChevronDown :size="20" />
             </div>
@@ -113,7 +113,8 @@ watch(searchQuery, (q) => {
 
                         <div v-for="item in filteredItems" :key="item.id" class="picker-item"
                             @click="handleSelect(item)">
-                            {{ item.name }}
+                            <div class="item-name">{{ item.name }}</div>
+                            <div v-if="item.subtitle" class="item-subtitle">{{ item.subtitle }}</div>
                         </div>
 
                         <div v-if="showCreateOption" class="picker-item create-btn" @click="handleCreate">
@@ -254,6 +255,17 @@ watch(searchQuery, (q) => {
     }
 }
 
+.item-name {
+    font-size: 1.125rem;
+    color: var(--color-text-primary);
+}
+
+.item-subtitle {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin-top: 4px;
+}
+
 .empty-results {
     padding: 40px;
     text-align: center;
@@ -290,7 +302,7 @@ watch(searchQuery, (q) => {
     .trigger-value {
         font-size: 15px;
         font-weight: 600;
-        padding-right: 20px;
+        padding-right: 32px;
     }
 
     .chevron {
