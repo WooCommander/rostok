@@ -9,6 +9,8 @@ import { AppUpdateService, type AppUpdateMeta } from '@/app/services/AppUpdateSe
 import { useNotify } from '@/composables/useNotify'
 import { Download, Share2 } from 'lucide-vue-next'
 
+import { FpHaptics } from '@/shared/lib/haptics'
+
 const router = useRouter()
 const { notify } = useNotify()
 
@@ -18,6 +20,42 @@ const currentVersion = releases[0]?.version || '1.2.0'
 const isChecking = ref(false)
 const updateMeta = ref<AppUpdateMeta | null>(null)
 const showUpdateModal = ref(false)
+
+// Пасхалка
+const clickCount = ref(0)
+const easterEggUnlocked = ref(false)
+const easterEggFact = ref('')
+
+const facts = [
+  'Первые растения на Земле не имели ни корней, ни листьев. Они впитывали воду всем телом!',
+  'Бамбук — самая быстрорастущая трава в мире. Он может вырасти до 90 см за один день!',
+  'Морковь изначально была фиолетовой, а не оранжевой. Оранжевую вывели голландцы в 17 веке!',
+  'Земляника — единственная ягода, семена которой находятся снаружи, а не внутри.',
+  'Самое старое живое дерево на Земле — сосна Мафусаил. Ей более 4800 лет!',
+  'Помидоры имеют больше генов, чем человек! (У томата около 31 760 генов, а у человека — около 20 000).'
+]
+
+let clickTimer: ReturnType<typeof setTimeout> | null = null
+
+function onIconClick() {
+  if (easterEggUnlocked.value) return
+
+  clickCount.value++
+  
+  if (clickTimer) clearTimeout(clickTimer)
+  
+  // Сбрасываем счетчик, если не было кликов 1.5 секунды
+  clickTimer = setTimeout(() => {
+    clickCount.value = 0
+  }, 1500)
+
+  if (clickCount.value >= 5) {
+    easterEggUnlocked.value = true
+    easterEggFact.value = facts[Math.floor(Math.random() * facts.length)]
+    FpHaptics.success()
+    notify('🎉 Вы нашли секретную пасхалку!', 'success')
+  }
+}
 
 async function onCheckUpdates() {
   isChecking.value = true
@@ -74,7 +112,11 @@ async function onShare() {
     </div>
 
     <FpCard class="app-info-card" padding="lg">
-      <div class="app-icon-wrapper">
+      <div 
+        class="app-icon-wrapper" 
+        :class="{ 'pulse-anim': clickCount > 0, 'egg-unlocked': easterEggUnlocked }"
+        @click="onIconClick"
+      >
         <span class="app-icon">🌱</span>
       </div>
       <div class="app-details">
@@ -97,6 +139,18 @@ async function onShare() {
         </FpButton>
       </div>
     </FpCard>
+
+    <transition name="fade">
+      <FpCard v-if="easterEggUnlocked" class="easter-egg-card" padding="lg">
+        <div class="egg-content">
+          <span class="egg-icon">🤫</span>
+          <div>
+            <h3>А вы знали?</h3>
+            <p>{{ easterEggFact }}</p>
+          </div>
+        </div>
+      </FpCard>
+    </transition>
 
     <div class="changelog-section">
       <h2 class="section-title">История изменений</h2>
@@ -229,6 +283,63 @@ async function onShare() {
       width: 100%;
     }
   }
+}
+
+.easter-egg-card {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 15%, transparent), color-mix(in srgb, var(--color-warning) 15%, transparent));
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+  
+  .egg-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .egg-icon {
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  h3 {
+    margin: 0 0 4px;
+    color: var(--color-text-primary);
+    font-size: 16px;
+  }
+
+  p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    line-height: 1.4;
+  }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+@keyframes gentlePulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.pulse-anim {
+  animation: gentlePulse 0.2s ease;
+}
+
+.egg-unlocked {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-warning)) !important;
+  color: white;
+  border-color: transparent !important;
+  transition: all 0.5s ease;
 }
 
 .changelog-section {
