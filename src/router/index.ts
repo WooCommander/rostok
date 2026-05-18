@@ -35,6 +35,12 @@ const routes = [
         meta: { requiresAuth: true }
     },
     {
+        path: '/journal/edit/:id',
+        name: 'EditTreatment',
+        component: () => import('@/views/AddTreatmentView.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
         path: '/profile',
         name: 'Profile',
         component: () => import('@/modules/profile/views/ProfileView.vue'),

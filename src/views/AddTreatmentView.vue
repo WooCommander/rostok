@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { ArrowLeft, Check, ChevronDown, X } from 'lucide-vue-next'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, Check } from 'lucide-vue-next'
+import FpMobilePicker from '@/design-system/components/FpMobilePicker.vue'
 import { PlantService, type Plant, type UserPlant } from '@/modules/plants/services/PlantService'
-import { JournalService } from '@/modules/journal/services/JournalService'
+import { JournalService, type NewTreatmentEntry } from '@/modules/journal/services/JournalService'
 import { WeatherService } from '@/modules/weather/services/WeatherService'
 import { ReminderService } from '@/modules/reminders'
+import { ProductService, type ProductItem } from '@/modules/products/services/ProductService'
 
 const router = useRouter()
 const route = useRoute()
@@ -19,8 +21,14 @@ const otherPlants = computed(() => {
 })
 const saving = ref(false)
 
+const isEditing = computed(() => !!route.params.id)
+const allProducts = ref<ProductItem[]>([])
+const productItems = computed(() => allProducts.value.map(p => ({ id: p.id, name: p.name })))
+
+const showPlantsModal = ref(false)
+
 const form = ref({
-  selected_id: '',
+  selected_ids: [] as string[],
   type: 'spraying',
   product: '',
   dose: '',
@@ -40,6 +48,22 @@ const types = [
   { value: 'other', label: '📝 Другое' }
 ]
 
+const selectedPlantsText = computed(() => {
+  const count = form.value.selected_ids.length
+  if (count === 0) return 'Выберите растения...'
+  if (count === 1) {
+     const sid = form.value.selected_ids[0]
+     if (sid.startsWith('u_')) {
+        const u = userPlantsList.value.find(x => x.id === sid.slice(2))
+        return u ? `${u.plant?.emoji} ${u.nickname || u.plant?.name}` : '1 растение'
+     } else {
+        const p = plants.value.find(x => x.id === sid.slice(2))
+        return p ? `${p.emoji} ${p.name}` : '1 растение'
+     }
+  }
+  return `Выбрано: ${count}`
+})
+
 onMounted(async () => {
   if (route.query.care_type) {
     form.value.type = String(route.query.care_type)
@@ -51,20 +75,40 @@ onMounted(async () => {
   if (route.query.product) form.value.product = String(route.query.product)
   if (route.query.dose) form.value.dose = String(route.query.dose)
   if (route.query.note) form.value.note = String(route.query.note)
-  if (route.query.selected_id) form.value.selected_id = String(route.query.selected_id)
+  if (route.query.selected_id) form.value.selected_ids = [String(route.query.selected_id)]
 
   try {
-    const [allPlants, myPlants] = await Promise.all([
+    const [fetchedPlants, myPlants, products] = await Promise.all([
       PlantService.getAll(),
-      PlantService.getUserPlants()
+      PlantService.getUserPlants(),
+      ProductService.getAllProducts()
     ])
-    plants.value = allPlants
+    plants.value = fetchedPlants
     userPlantsList.value = myPlants
-    
-    if (route.query.selected_id) {
-      form.value.selected_id = String(route.query.selected_id)
-    } else if (myPlants.length > 0 && !form.value.selected_id) {
-      form.value.selected_id = 'u_' + myPlants[0].id
+    allProducts.value = products
+
+    if (isEditing.value) {
+      const entry = await JournalService.getById(route.params.id as string)
+      if (entry) {
+        form.value.type = entry.care_type
+        form.value.product = entry.product || ''
+        form.value.dose = entry.dose || ''
+        form.value.temp = entry.temperature ? String(entry.temperature) : ''
+        form.value.note = entry.notes || ''
+        form.value.date = entry.treated_at
+        
+        if (entry.user_plant_id) {
+          form.value.selected_ids = ['u_' + entry.user_plant_id]
+        } else if (entry.plant_id) {
+          form.value.selected_ids = ['p_' + entry.plant_id]
+        }
+      }
+    } else {
+      if (route.query.selected_id) {
+        form.value.selected_ids = [String(route.query.selected_id)]
+      } else if (myPlants.length > 0 && form.value.selected_ids.length === 0) {
+        form.value.selected_ids = ['u_' + myPlants[0].id]
+      }
     }
   } catch (e) {
     console.error(e)
@@ -76,29 +120,24 @@ onMounted(async () => {
 })
 
 async function save() {
-  if (!form.value.selected_id) return
+  if (form.value.selected_ids.length === 0) return
   saving.value = true
 
-  const isU = form.value.selected_id.startsWith('u_')
-  const idVal = form.value.selected_id.slice(2)
-  let plantId = ''
-  let userPlantId: string | null = null
+  const entriesToSave: NewTreatmentEntry[] = form.value.selected_ids.map(sid => {
+    const isU = sid.startsWith('u_')
+    const idVal = sid.slice(2)
+    let plantId = ''
+    let userPlantId: string | null = null
 
-  if (isU) {
-    userPlantId = idVal
-    const uPlant = userPlantsList.value.find(u => u.id === idVal)
-    if (uPlant) plantId = uPlant.plant_id
-  } else {
-    plantId = idVal
-  }
+    if (isU) {
+      userPlantId = idVal
+      const uPlant = userPlantsList.value.find(u => u.id === idVal)
+      if (uPlant) plantId = uPlant.plant_id
+    } else {
+      plantId = idVal
+    }
 
-  if (!plantId) {
-    saving.value = false
-    return
-  }
-
-  try {
-    await JournalService.add({
+    return {
       plant_id: plantId,
       user_plant_id: userPlantId,
       treated_at: form.value.date,
@@ -107,21 +146,37 @@ async function save() {
       dose: form.value.dose || undefined,
       temperature: form.value.temp ? parseFloat(form.value.temp) : null,
       notes: form.value.note || undefined
-    })
+    }
+  }).filter(e => e.plant_id)
+
+  if (entriesToSave.length === 0) {
+    saving.value = false
+    return
+  }
+
+  try {
+    if (isEditing.value) {
+      await JournalService.update(route.params.id as string, entriesToSave[0])
+    } else {
+      await JournalService.add(entriesToSave)
+    }
 
     if (enableReminder.value && reminderDays.value > 0) {
       const targetDate = new Date(form.value.date)
       targetDate.setDate(targetDate.getDate() + reminderDays.value)
       const remindAtDate = targetDate.toISOString().split('T')[0]
 
-      await ReminderService.addReminder({
-        plantId,
-        userPlantId,
-        careType: form.value.type,
-        product: form.value.product || undefined,
-        dose: form.value.dose || undefined,
-        remindAtDate
-      })
+      for (const e of entriesToSave) {
+        if (!e.plant_id) continue
+        await ReminderService.addReminder({
+          plantId: e.plant_id,
+          userPlantId: e.user_plant_id || null,
+          careType: form.value.type,
+          product: form.value.product || undefined,
+          dose: form.value.dose || undefined,
+          remindAtDate
+        })
+      }
     }
 
     router.push('/journal')
@@ -137,7 +192,7 @@ async function save() {
   <div class="add-treatment">
     <div class="page-header">
       <button class="back-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
-      <h1 class="header-title">Новая запись</h1>
+      <h1 class="header-title">{{ isEditing ? 'Редактировать запись' : 'Новая запись' }}</h1>
     </div>
 
     <div class="form-body">
@@ -147,20 +202,11 @@ async function save() {
       </div>
 
       <div class="field">
-        <label class="field-label">Растение</label>
-        <select v-model="form.selected_id" class="field-input">
-          <option value="" disabled>Выбери растение...</option>
-          <optgroup v-if="myGardenPlants.length" label="⭐ Мой огород">
-            <option v-for="u in myGardenPlants" :key="u.id" :value="'u_' + u.id">
-              {{ u.plant?.emoji }} {{ u.nickname || u.plant?.name }} {{ u.location_note ? `(${u.location_note})` : '' }}
-            </option>
-          </optgroup>
-          <optgroup label="Все культуры">
-            <option v-for="p in otherPlants" :key="p.id" :value="'p_' + p.id">
-              {{ p.emoji }} {{ p.name }}
-            </option>
-          </optgroup>
-        </select>
+        <label class="field-label">Растения</label>
+        <div class="plants-selector-trigger" @click="showPlantsModal = true">
+          <div class="trigger-value">{{ selectedPlantsText }}</div>
+          <ChevronDown :size="20" class="chevron" />
+        </div>
       </div>
 
       <div class="field">
@@ -175,8 +221,17 @@ async function save() {
       </div>
 
       <div class="field" v-if="form.type !== 'watering' && form.type !== 'pruning'">
-        <label class="field-label">Препарат / удобрение</label>
-        <input v-model="form.product" type="text" class="field-input" placeholder="Фитоспорин-М, Кемира..." />
+        <FpMobilePicker
+          v-model="form.product"
+          :items="productItems"
+          label="Препарат / удобрение"
+          placeholder="Поиск или ввод нового..."
+          allow-create
+          create-label="Добавить новый:"
+          title="Выбор препарата"
+          variant="bordered"
+          @create="form.product = $event"
+        />
       </div>
 
       <div class="field" v-if="form.product">
@@ -203,11 +258,45 @@ async function save() {
         </div>
       </div>
 
-      <button class="save-btn" :disabled="!form.selected_id || saving" @click="save">
+      <button class="save-btn" :disabled="form.selected_ids.length === 0 || saving" @click="save">
         <Check :size="18" />
         {{ saving ? 'Сохраняю...' : 'Сохранить' }}
       </button>
     </div>
+
+    <Teleport to="body">
+      <Transition name="picker-fade">
+        <div v-if="showPlantsModal" class="picker-overlay">
+          <div class="picker-header">
+            <button class="close-btn" @click="showPlantsModal = false"><X :size="24" /></button>
+            <h2 class="picker-title">Выбор растений</h2>
+            <button class="done-btn" @click="showPlantsModal = false">Готово</button>
+          </div>
+          <div class="picker-content">
+            <div class="plants-group-title" v-if="myGardenPlants.length">⭐ Мой огород</div>
+            <label v-for="u in myGardenPlants" :key="u.id" class="plant-row">
+              <div class="plant-info">
+                <span class="emoji">{{ u.plant?.emoji }}</span>
+                <div class="details">
+                  <span class="name">{{ u.nickname || u.plant?.name }}</span>
+                  <span class="loc" v-if="u.location_note">{{ u.location_note }}</span>
+                </div>
+              </div>
+              <input type="checkbox" :value="'u_' + u.id" v-model="form.selected_ids" class="fp-checkbox" />
+            </label>
+            
+            <div class="plants-group-title" v-if="otherPlants.length">Все культуры</div>
+            <label v-for="p in otherPlants" :key="p.id" class="plant-row">
+              <div class="plant-info">
+                <span class="emoji">{{ p.emoji }}</span>
+                <span class="name">{{ p.name }}</span>
+              </div>
+              <input type="checkbox" :value="'p_' + p.id" v-model="form.selected_ids" class="fp-checkbox" />
+            </label>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -232,6 +321,15 @@ async function save() {
   &:focus { border-color: var(--color-primary); }
 }
 .field-textarea { resize: vertical; min-height: 80px; }
+.plants-selector-trigger {
+  width: 100%; border: 1.5px solid var(--color-border); border-radius: 12px;
+  background: var(--color-surface); height: 48px; padding: 0 12px 0 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; transition: border-color 0.2s;
+  &:active { border-color: var(--color-primary); }
+  .trigger-value { font-size: 15px; font-weight: 600; color: var(--color-text-primary); }
+  .chevron { color: var(--color-text-secondary); }
+}
 .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .type-btn {
   padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-md);
@@ -239,41 +337,41 @@ async function save() {
   cursor: pointer; text-align: center;
   &.active { background: var(--color-surface-hover); border-color: var(--color-primary); color: var(--color-primary); font-weight: 600; }
 }
-.reminder-field {
-  background: var(--color-surface-hover);
-  padding: 14px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
-}
-.reminder-options {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
+.reminder-field { background: var(--color-surface-hover); padding: 14px; border-radius: var(--radius-lg); border: 1px solid var(--color-border); }
+.reminder-options { display: flex; gap: 8px; margin-top: 8px; }
 .rem-btn {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-secondary);
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-
+  flex: 1; padding: 10px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-secondary);
+  border-radius: var(--radius-md); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
   &:hover { color: var(--color-text-primary); }
-
-  &.active {
-    background: var(--color-primary);
-    color: white;
-    border-color: var(--color-primary);
-  }
+  &.active { background: var(--color-primary); color: white; border-color: var(--color-primary); }
 }
 .save-btn {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; padding: 14px; background: var(--color-primary); color: var(--color-on-primary);
-  border: none; border-radius: var(--radius-lg); font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px;
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px;
+  background: var(--color-primary); color: var(--color-on-primary); border: none; border-radius: var(--radius-lg);
+  font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 8px;
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
+
+/* Modal styles */
+.picker-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--color-background); z-index: 2000; display: flex; flex-direction: column; }
+.picker-header { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--color-border); background: var(--color-surface); }
+.picker-title { font-size: 1.125rem; font-weight: 600; margin: 0; }
+.close-btn { background: none; border: none; padding: 4px; color: var(--color-text-primary); cursor: pointer; }
+.done-btn { background: none; border: none; padding: 4px 8px; color: var(--color-primary); font-weight: 600; font-size: 15px; cursor: pointer; }
+.picker-content { flex: 1; overflow-y: auto; padding-bottom: 40px; }
+.plants-group-title { font-size: 12px; font-weight: 700; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; padding: 16px 16px 8px; }
+.plant-row {
+  display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--color-border);
+  cursor: pointer; background: var(--color-surface);
+  &:active { background: var(--color-surface-hover); }
+}
+.plant-info { display: flex; align-items: center; gap: 12px; }
+.plant-info .emoji { font-size: 24px; line-height: 1; }
+.plant-info .details { display: flex; flex-direction: column; gap: 2px; }
+.plant-info .name { font-size: 16px; font-weight: 600; color: var(--color-text-primary); }
+.plant-info .loc { font-size: 13px; color: var(--color-text-secondary); }
+.fp-checkbox { width: 22px; height: 22px; accent-color: var(--color-primary); cursor: pointer; }
+
+.picker-fade-enter-active, .picker-fade-leave-active { transition: transform 0.3s ease, opacity 0.3s ease; }
+.picker-fade-enter-from, .picker-fade-leave-to { transform: translateY(100%); opacity: 0; }
 </style>

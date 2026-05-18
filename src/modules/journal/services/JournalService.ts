@@ -38,11 +38,37 @@ export const JournalService = {
     return data || []
   },
 
-  async add(entry: NewTreatmentEntry): Promise<TreatmentEntry> {
-    const { data: { user } } = await supabase.auth.getUser()
+  async getById(id: string): Promise<TreatmentEntry> {
     const { data, error } = await supabase
       .from('treatment_log')
-      .insert({ ...entry, user_id: user?.id })
+      .select('*, plant:plants(name, emoji), user_plant:user_plants(nickname, location_note)')
+      .eq('id', id)
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  async add(entries: NewTreatmentEntry | NewTreatmentEntry[]): Promise<TreatmentEntry | TreatmentEntry[]> {
+    const { data: { user } } = await supabase.auth.getUser()
+    const isArray = Array.isArray(entries)
+    const itemsToInsert = isArray 
+      ? entries.map(e => ({ ...e, user_id: user?.id })) 
+      : [{ ...entries, user_id: user?.id }]
+
+    const { data, error } = await supabase
+      .from('treatment_log')
+      .insert(itemsToInsert)
+      .select('*, plant:plants(name, emoji), user_plant:user_plants(nickname, location_note)')
+    
+    if (error) throw error
+    return isArray ? data : data[0]
+  },
+
+  async update(id: string, entry: Partial<NewTreatmentEntry>): Promise<TreatmentEntry> {
+    const { data, error } = await supabase
+      .from('treatment_log')
+      .update(entry)
+      .eq('id', id)
       .select('*, plant:plants(name, emoji), user_plant:user_plants(nickname, location_note)')
       .single()
     if (error) throw error

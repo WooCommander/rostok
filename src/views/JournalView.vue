@@ -3,10 +3,14 @@ import { ref, onMounted } from 'vue'
 import { Plus, Sprout, Trash2 } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { JournalService, type TreatmentEntry } from '@/modules/journal/services/JournalService'
+import FpConfirmationModal from '@/design-system/components/FpConfirmationModal.vue'
 
 const router = useRouter()
 const entries = ref<TreatmentEntry[]>([])
 const loading = ref(true)
+
+const isConfirmVisible = ref(false)
+const confirmEntryId = ref<string | null>(null)
 
 const typeLabel: Record<string, string> = {
   spraying: 'Опрыскивание',
@@ -27,9 +31,23 @@ async function load() {
   }
 }
 
-async function remove(id: string) {
-  await JournalService.remove(id)
-  entries.value = entries.value.filter(e => e.id !== id)
+function promptDelete(id: string) {
+  confirmEntryId.value = id
+  isConfirmVisible.value = true
+}
+
+async function onConfirmDelete() {
+  if (confirmEntryId.value) {
+    await JournalService.remove(confirmEntryId.value)
+    entries.value = entries.value.filter(e => e.id !== confirmEntryId.value)
+  }
+  isConfirmVisible.value = false
+  confirmEntryId.value = null
+}
+
+function onCancelDelete() {
+  isConfirmVisible.value = false
+  confirmEntryId.value = null
 }
 
 onMounted(load)
@@ -57,14 +75,14 @@ onMounted(load)
     </div>
 
     <div v-else class="entries-list">
-      <div v-for="entry in entries" :key="entry.id" class="entry-card">
+      <div v-for="entry in entries" :key="entry.id" class="entry-card" @click="router.push(`/journal/edit/${entry.id}`)">
         <div class="entry-header">
           <div class="entry-type-badge" :class="entry.care_type">
             {{ typeLabel[entry.care_type] || entry.care_type }}
           </div>
           <div class="entry-right">
             <div class="entry-date">{{ entry.treated_at }}</div>
-            <button class="delete-btn" @click.stop="remove(entry.id)">
+            <button class="icon-btn" @click.stop="promptDelete(entry.id)">
               <Trash2 :size="14" />
             </button>
           </div>
@@ -86,6 +104,17 @@ onMounted(load)
         </div>
       </div>
     </div>
+
+    <FpConfirmationModal
+      v-model:visible="isConfirmVisible"
+      title="Удалить запись?"
+      message="Вы уверены, что хотите удалить эту запись из журнала? Отменить это действие будет невозможно."
+      confirm-text="Удалить"
+      cancel-text="Отмена"
+      variant="danger"
+      @confirm="onConfirmDelete"
+      @cancel="onCancelDelete"
+    />
   </div>
 </template>
 
@@ -112,7 +141,9 @@ onMounted(load)
 .entry-card {
   background: var(--color-surface); border: 1px solid var(--color-border);
   border-radius: var(--radius-md); padding: 12px 14px;
-  &.skeleton-card { height: 80px; background: var(--color-border); opacity: 0.4; }
+  cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s;
+  &:hover { border-color: var(--color-primary); box-shadow: var(--shadow-sm); }
+  &.skeleton-card { height: 80px; background: var(--color-border); opacity: 0.4; cursor: default; }
 }
 .entry-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .entry-right { display: flex; align-items: center; gap: 8px; }
@@ -125,9 +156,10 @@ onMounted(load)
   &.other { background: var(--color-surface-hover); color: var(--color-text-secondary); }
 }
 .entry-date { font-size: 12px; color: var(--color-text-tertiary); }
-.delete-btn {
-  background: none; border: none; color: var(--color-text-disabled); cursor: pointer; padding: 2px;
-  &:hover { color: var(--color-error); }
+.icon-btn {
+  background: none; border: none; color: var(--color-text-disabled); cursor: pointer; padding: 4px;
+  display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);
+  &:hover { color: var(--color-error); background: color-mix(in srgb, var(--color-error) 10%, transparent); }
 }
 .entry-plant { font-size: 15px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .plant-loc { font-size: 13px; font-weight: 400; color: var(--color-text-tertiary); }
