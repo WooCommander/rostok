@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Droplets, Scale, AlertCircle, Utensils, Award, BookPlus } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import type { CalculationResult, FertilizerMeta } from '../services/CalculatorService'
+import { WeatherService, type DailyForecast } from '@/modules/weather/services/WeatherService'
+
 
 interface Props {
   result: CalculationResult
@@ -26,6 +28,53 @@ const futureDateText = computed(() => {
     'воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'
   ]
   return `${futureDate.getDate()} ${months[futureDate.getMonth()]} (${weekdays[futureDate.getDay()]})`
+})
+
+const weeklyForecast = ref<DailyForecast[]>([])
+
+const weatherAlert = computed(() => {
+  if (repeatInterval.value <= 0 || weeklyForecast.value.length === 0) return null
+  const futureDate = new Date()
+  futureDate.setDate(futureDate.getDate() + repeatInterval.value)
+  const targetDateStr = futureDate.toISOString().split('T')[0]
+
+  const dayForecast = weeklyForecast.value.find(f => f.date === targetDateStr)
+  if (!dayForecast) return null
+
+  const code = dayForecast.weatherCode
+  if (code >= 61 && code <= 67) {
+    return {
+      type: 'rain',
+      message: `⚠️ Внимание: в этот день ожидается дождь (${dayForecast.tempMax}°C). Вода смоет препараты. Рассмотрите перенос.`
+    }
+  }
+  if (code >= 80 && code <= 99) {
+    return {
+      type: 'rain',
+      message: `⚠️ Внимание: ожидается ливень или гроза. Риск полного вымывания удобрений. Перенесите дату.`
+    }
+  }
+  if (dayForecast.tempMin <= 4) {
+    return {
+      type: 'cold',
+      message: `❄️ Внимание: ожидаются заморозки (до ${dayForecast.tempMin}°C). В холод растения не усваивают питание.`
+    }
+  }
+  if (dayForecast.tempMax <= 10) {
+    return {
+      type: 'cold',
+      message: `🥶 Внимание: сильное похолодание (днем до ${dayForecast.tempMax}°C). Эффективность подкормки будет низкой.`
+    }
+  }
+  return null
+})
+
+onMounted(async () => {
+  try {
+    weeklyForecast.value = await WeatherService.getWeeklyForecast()
+  } catch (err) {
+    console.error('Не удалось загрузить недельный прогноз:', err)
+  }
 })
 
 function logTreatment() {
@@ -94,10 +143,16 @@ function logTreatment() {
         <option :value="14">14 дней (через 2 недели)</option>
         <option :value="21">21 день (через 3 недели)</option>
       </select>
-      
+
       <transition name="fade">
-        <div v-if="repeatInterval > 0 && futureDateText" class="future-date-badge">
-          📅 Следующая подкормка: <strong>{{ futureDateText }}</strong>
+        <div v-if="repeatInterval > 0 && futureDateText" class="future-date-badge-wrapper">
+          <div class="future-date-badge">
+            📅 Следующая подкормка: <strong>{{ futureDateText }}</strong>
+          </div>
+
+          <div v-if="weatherAlert" class="weather-warning-badge" :class="weatherAlert.type">
+            <span class="warning-text">{{ weatherAlert.message }}</span>
+          </div>
         </div>
       </transition>
     </div>
@@ -303,8 +358,13 @@ function logTreatment() {
   }
 }
 
+.future-date-badge-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .future-date-badge {
-  margin-top: 4px;
   background: var(--color-primary-subtle, rgba(45, 106, 79, 0.12));
   color: var(--color-primary);
   border-radius: var(--radius-md);
@@ -319,6 +379,35 @@ function logTreatment() {
   strong {
     color: var(--color-text-primary);
     font-weight: 700;
+  }
+}
+
+.weather-warning-badge {
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+
+  &.rain {
+    background: rgba(217, 119, 6, 0.1);
+    color: #d97706;
+    border-left: 3px solid #d97706;
+  }
+
+  &.cold {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+    border-left: 3px solid #2563eb;
+  }
+
+  &.wind {
+    background: rgba(107, 114, 128, 0.1);
+    color: #4b5563;
+    border-left: 3px solid #4b5563;
   }
 }
 

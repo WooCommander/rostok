@@ -5,7 +5,8 @@ import { useRouter, useRoute } from 'vue-router'
 import FpMobilePicker from '@/design-system/components/FpMobilePicker.vue'
 import { PlantService, type Plant, type UserPlant } from '@/modules/plants/services/PlantService'
 import { JournalService, type NewTreatmentEntry, type TreatedPlant } from '@/modules/journal/services/JournalService'
-import { WeatherService } from '@/modules/weather/services/WeatherService'
+import { WeatherService, type DailyForecast } from '@/modules/weather/services/WeatherService'
+
 import { ReminderService } from '@/modules/reminders'
 import { ProductService, type ProductItem } from '@/modules/products/services/ProductService'
 import { PushNotificationService } from '@/modules/notifications'
@@ -102,6 +103,55 @@ const futureDateText = computed(() => {
   return `${futureDate.getDate()} ${months[futureDate.getMonth()]} (${weekdays[futureDate.getDay()]})`
 })
 
+const weeklyForecast = ref<DailyForecast[]>([])
+
+const weatherAlert = computed(() => {
+  if (!enableReminder.value || !reminderDays.value || !form.value.date) return null
+  if (weeklyForecast.value.length === 0) return null
+
+  const baseDate = new Date(form.value.date)
+  const futureDate = new Date(baseDate.getTime())
+  futureDate.setDate(futureDate.getDate() + Number(reminderDays.value))
+  const targetDateStr = futureDate.toISOString().split('T')[0]
+
+  const dayForecast = weeklyForecast.value.find(f => f.date === targetDateStr)
+  if (!dayForecast) return null
+
+  const code = dayForecast.weatherCode
+  if (code >= 61 && code <= 67) {
+    return {
+      type: 'rain',
+      message: `⚠️ Внимание: в этот день ожидается дождь (${dayForecast.tempMax}°C). Вода смоет препараты. Рассмотрите перенос.`
+    }
+  }
+  if (code >= 80 && code <= 99) {
+    return {
+      type: 'rain',
+      message: `⚠️ Внимание: ожидается ливень или гроза. Риск полного вымывания удобрений. Перенесите дату.`
+    }
+  }
+  if (dayForecast.tempMin <= 4) {
+    return {
+      type: 'cold',
+      message: `❄️ Внимание: ожидаются заморозки (до ${dayForecast.tempMin}°C). В холод растения не усваивают питание.`
+    }
+  }
+  if (dayForecast.tempMax <= 10) {
+    return {
+      type: 'cold',
+      message: `🥶 Внимание: сильное похолодание (днем до ${dayForecast.tempMax}°C). Эффективность подкормки будет низкой.`
+    }
+  }
+  if (dayForecast.windSpeedMax >= 18 && form.value.type === 'spraying') {
+    return {
+      type: 'wind',
+      message: `💨 Внимание: сильный ветер (до ${Math.round(dayForecast.windSpeedMax)} км/ч). Опрыскивание неэффективно.`
+    }
+  }
+
+  return null
+})
+
 onMounted(async () => {
   if (route.query.care_type) {
     form.value.type = String(route.query.care_type)
@@ -162,6 +212,11 @@ onMounted(async () => {
     const w = await WeatherService.getWithCache()
     form.value.temp = String(w.temp)
   } catch {}
+  try {
+    weeklyForecast.value = await WeatherService.getWeeklyForecast()
+  } catch (err) {
+    console.error('Не удалось загрузить недельный прогноз:', err)
+  }
 })
 
 async function save() {
@@ -318,8 +373,14 @@ async function save() {
         </div>
 
         <transition name="fade">
-          <div v-if="enableReminder && futureDateText" class="future-date-badge">
-            📅 Следующий уход: <strong>{{ futureDateText }}</strong>
+          <div v-if="enableReminder && futureDateText" class="future-date-badge-wrapper">
+            <div class="future-date-badge">
+              📅 Следующий уход: <strong>{{ futureDateText }}</strong>
+            </div>
+
+            <div v-if="weatherAlert" class="weather-warning-badge" :class="weatherAlert.type">
+              <span class="warning-text">{{ weatherAlert.message }}</span>
+            </div>
           </div>
         </transition>
       </div>
@@ -432,8 +493,14 @@ async function save() {
   height: 38px;
 }
 
-.future-date-badge {
+.future-date-badge-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin-top: 12px;
+}
+
+.future-date-badge {
   background: var(--color-primary-subtle, rgba(45, 106, 79, 0.12));
   color: var(--color-primary);
   border-radius: var(--radius-md);
@@ -448,6 +515,35 @@ async function save() {
   strong {
     color: var(--color-text-primary);
     font-weight: 700;
+  }
+}
+
+.weather-warning-badge {
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+
+  &.rain {
+    background: rgba(217, 119, 6, 0.1);
+    color: #d97706;
+    border-left: 3px solid #d97706;
+  }
+
+  &.cold {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+    border-left: 3px solid #2563eb;
+  }
+
+  &.wind {
+    background: rgba(107, 114, 128, 0.1);
+    color: #4b5563;
+    border-left: 3px solid #4b5563;
   }
 }
 .save-btn {

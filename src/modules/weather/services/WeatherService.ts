@@ -12,6 +12,16 @@ export interface WeatherData {
   lon: number
 }
 
+export interface DailyForecast {
+  date: string
+  tempMax: number
+  tempMin: number
+  weatherCode: number
+  condition: string
+  windSpeedMax: number
+}
+
+
 export const WeatherService = {
   async getCurrentPosition(): Promise<{ lat: number; lon: number }> {
     try {
@@ -89,5 +99,43 @@ export const WeatherService = {
     sessionStorage.setItem(cacheKey, JSON.stringify(data))
     sessionStorage.setItem(cacheTime, String(now))
     return data
+  },
+
+  async getWeeklyForecast(lat?: number, lon?: number): Promise<DailyForecast[]> {
+    try {
+      const cacheKey = 'rostok_weather_forecast'
+      const cacheTime = 'rostok_weather_forecast_time'
+      const now = Date.now()
+      const cached = sessionStorage.getItem(cacheKey)
+      const lastTime = parseInt(sessionStorage.getItem(cacheTime) || '0')
+
+      if (cached && now - lastTime < 60 * 60 * 1000) {
+        return JSON.parse(cached)
+      }
+
+      const coords = lat && lon ? { lat, lon } : await WeatherService.getCurrentPosition()
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=temperature_2m_max,temperature_2m_min,weathercode,windspeed_10m_max&timezone=auto`
+      const res = await fetch(url)
+      if (!res.ok) throw new Error('Ошибка погодного API')
+      const json = await res.json()
+      
+      const forecasts: DailyForecast[] = json.daily.time.map((timeStr: string, idx: number) => {
+        return {
+          date: timeStr,
+          tempMax: Math.round(json.daily.temperature_2m_max[idx]),
+          tempMin: Math.round(json.daily.temperature_2m_min[idx]),
+          weatherCode: json.daily.weathercode[idx],
+          condition: WeatherService.codeToCondition(json.daily.weathercode[idx]),
+          windSpeedMax: json.daily.windspeed_10m_max[idx]
+        }
+      })
+
+      sessionStorage.setItem(cacheKey, JSON.stringify(forecasts))
+      sessionStorage.setItem(cacheTime, String(now))
+      return forecasts
+    } catch (e) {
+      console.error('Не удалось загрузить недельный прогноз:', e)
+      return []
+    }
   }
 }

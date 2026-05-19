@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { LogOut, MapPin, Thermometer, ChevronRight, Sun, Moon, FileText, RefreshCw, Bookmark } from 'lucide-vue-next'
+import { LogOut, MapPin, Thermometer, ChevronRight, Sun, Moon, FileText, RefreshCw, Bookmark, Sprout, ShieldAlert, BarChart3, Database } from 'lucide-vue-next'
 import { authStore } from '@/modules/auth/store/authStore'
 import { useTheme } from '@/composables/useTheme'
 import { supabase } from '@/api/supabase'
@@ -10,6 +10,7 @@ import { changelog } from '@/data/changelog'
 import { useTipsState, TipOfTheDayModal } from '@/modules/tips'
 import type { TipUiModel } from '@/modules/tips/adapters/TipsAdapter'
 import { NotificationSettingsCard } from '@/modules/notifications'
+import { PlantService } from '@/modules/plants/services/PlantService'
 
 const router = useRouter()
 const { isDark, toggleTheme } = useTheme()
@@ -27,6 +28,12 @@ const saved = ref(false)
 const gpsLoading = ref(false)
 
 // Stats
+const stats = ref({
+  userPlantsCount: 0,
+  treatmentsCount: 0,
+  uniqueProductsCount: 0,
+  totalPlantsBaseCount: 0
+})
 const treatmentCount = ref(0)
 
 // Saved Tips
@@ -55,11 +62,30 @@ async function loadSettings() {
 
 async function loadStats() {
   if (!user.value) return
-  const { count } = await supabase
-    .from('treatment_log')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.value.id)
-  treatmentCount.value = count || 0
+  try {
+    const userPlants = await PlantService.getUserPlants()
+    stats.value.userPlantsCount = userPlants.length
+
+    const allPlants = await PlantService.getAll()
+    stats.value.totalPlantsBaseCount = allPlants.length
+
+    const { data: treatments, count } = await supabase
+      .from('treatment_log')
+      .select('product', { count: 'exact' })
+      .eq('user_id', user.value.id)
+
+    stats.value.treatmentsCount = count || 0
+    treatmentCount.value = count || 0
+
+    if (treatments) {
+      const products = treatments
+        .map(t => t.product)
+        .filter((p): p is string => !!p && p.trim() !== '')
+      stats.value.uniqueProductsCount = new Set(products).size
+    }
+  } catch (e) {
+    console.error('Ошибка загрузки статистики:', e)
+  }
 }
 
 async function detectLocation() {
@@ -122,6 +148,55 @@ async function logout() {
             <div class="tip-title">{{ tip.title }}</div>
           </div>
           <ChevronRight :size="16" class="chevron" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="section">
+      <div class="section-title">
+        <BarChart3 :size="14" style="margin-right: 4px; display: inline-block; vertical-align: middle;" />
+        Мой сад в цифрах
+      </div>
+      <div class="stats-grid">
+        <div class="stat-tile">
+          <div class="tile-icon sprout">
+            <Sprout :size="20" />
+          </div>
+          <div class="tile-content">
+            <div class="tile-num">{{ stats.userPlantsCount }}</div>
+            <div class="tile-label">Растений в огороде</div>
+          </div>
+        </div>
+
+        <div class="stat-tile">
+          <div class="tile-icon journal">
+            <FileText :size="20" />
+          </div>
+          <div class="tile-content">
+            <div class="tile-num">{{ stats.treatmentsCount }}</div>
+            <div class="tile-label">Записей ухода</div>
+          </div>
+        </div>
+
+        <div class="stat-tile">
+          <div class="tile-icon product">
+            <ShieldAlert :size="20" />
+          </div>
+          <div class="tile-content">
+            <div class="tile-num">{{ stats.uniqueProductsCount }}</div>
+            <div class="tile-label">Препаратов применено</div>
+          </div>
+        </div>
+
+        <div class="stat-tile">
+          <div class="tile-icon database">
+            <Database :size="20" />
+          </div>
+          <div class="tile-content">
+            <div class="tile-num">{{ stats.totalPlantsBaseCount }}</div>
+            <div class="tile-label">Культур в энциклопедии</div>
+          </div>
         </div>
       </div>
     </div>
@@ -472,5 +547,80 @@ async function logout() {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ── STATS GRID ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.stat-tile {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: transform 0.2s, border-color 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-primary);
+  }
+}
+
+.tile-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &.sprout {
+    background: rgba(45, 106, 79, 0.1);
+    color: #2d6a4f;
+  }
+
+  &.journal {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+  }
+
+  &.product {
+    background: rgba(217, 119, 6, 0.1);
+    color: #d97706;
+  }
+
+  &.database {
+    background: rgba(124, 58, 237, 0.1);
+    color: #7c3aed;
+  }
+}
+
+.tile-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tile-num {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+.tile-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
 }
 </style>
