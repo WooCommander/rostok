@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { Capacitor } from '@capacitor/core'
+
 import FpButton from './FpButton.vue'
 import FpCard from './FpCard.vue'
 import { InAppDownloadService } from '@/app/services/InAppDownloadService'
@@ -26,6 +28,8 @@ const downloadedBytes = ref(0)
 const totalBytes = ref(0)
 const downloadedFilePath = ref<string | null>(null)
 
+const isNative = computed(() => Capacitor.isNativePlatform())
+
 const formattedDownloaded = computed(() => (downloadedBytes.value / 1024 / 1024).toFixed(1))
 const formattedTotal = computed(() => (totalBytes.value > 0 ? (totalBytes.value / 1024 / 1024).toFixed(1) : '4.8'))
 
@@ -42,31 +46,54 @@ function close() {
 
 async function startDownload() {
   const url = props.downloadUrl || 'https://kzrylsrzyqrrpofaqixm.supabase.co/storage/v1/object/public/releases/Rostok.apk'
-  status.value = 'downloading'
-  downloadProgress.value = 0
-  downloadedBytes.value = 0
-  totalBytes.value = 4800000
-  FpHaptics.selection()
-
-  const resultPath = await InAppDownloadService.downloadApk(url, (pct, loaded, total) => {
-    downloadProgress.value = pct
-    downloadedBytes.value = loaded
-    if (total > 0) totalBytes.value = total
-  })
-
-  if (resultPath) {
-    downloadProgress.value = 100
-    status.value = 'success'
-    downloadedFilePath.value = resultPath
-    FpHaptics.success()
-
-    // Запускаем установку через 600мс после анимации 100%
-    setTimeout(() => {
-      triggerInstall()
-    }, 600)
+  
+  if (isNative.value) {
+    status.value = 'downloading'
+    downloadProgress.value = 0
+    FpHaptics.selection()
+    
+    // Плавная имитация подготовки к переходу на телефоне
+    const interval = setInterval(() => {
+      if (downloadProgress.value < 100) {
+        downloadProgress.value += 10
+      } else {
+        clearInterval(interval)
+        status.value = 'success'
+        downloadedFilePath.value = url
+        FpHaptics.success()
+        
+        setTimeout(() => {
+          triggerInstall()
+        }, 600)
+      }
+    }, 100)
   } else {
-    status.value = 'error'
-    FpHaptics.error()
+    status.value = 'downloading'
+    downloadProgress.value = 0
+    downloadedBytes.value = 0
+    totalBytes.value = 4800000
+    FpHaptics.selection()
+
+    const resultPath = await InAppDownloadService.downloadApk(url, (pct, loaded, total) => {
+      downloadProgress.value = pct
+      downloadedBytes.value = loaded
+      if (total > 0) totalBytes.value = total
+    })
+
+    if (resultPath) {
+      downloadProgress.value = 100
+      status.value = 'success'
+      downloadedFilePath.value = resultPath
+      FpHaptics.success()
+
+      // Запускаем установку через 600мс после анимации 100%
+      setTimeout(() => {
+        triggerInstall()
+      }, 600)
+    } else {
+      status.value = 'error'
+      FpHaptics.error()
+    }
   }
 }
 
@@ -75,7 +102,7 @@ function triggerInstall() {
   if (downloadedFilePath.value) {
     InAppDownloadService.installApk(downloadedFilePath.value, url)
   } else {
-    window.open(url, '_blank')
+    window.open(url, '_system')
   }
   emit('success')
   emit('update:visible', false)
@@ -132,16 +159,24 @@ function triggerInstall() {
                   </div>
                 </div>
                 <div class="progress-details">
-                  <h4 class="status-head">Загрузка обновления...</h4>
-                  <span class="status-meta">{{ formattedDownloaded }} MB из {{ formattedTotal }} MB</span>
+                  <h4 class="status-head">
+                    {{ isNative ? 'Подготовка к установке...' : 'Загрузка обновления...' }}
+                  </h4>
+                  <span class="status-meta">
+                    {{ isNative ? 'Перенаправление в браузер' : `${formattedDownloaded} MB из ${formattedTotal} MB` }}
+                  </span>
                 </div>
               </template>
 
               <template v-else-if="status === 'success'">
                 <div class="success-box">
                   <CheckCircle2 :size="56" class="success-icon" />
-                  <h4 class="success-title">Загрузка завершена!</h4>
-                  <p class="success-desc">Сейчас запустится системный установщик Android. Если этого не произошло автоматически, нажмите кнопку ниже.</p>
+                  <h4 class="success-title">
+                    {{ isNative ? 'Запуск установки...' : 'Загрузка завершена!' }}
+                  </h4>
+                  <p class="success-desc">
+                    {{ isNative ? 'Открываем системный браузер для скачивания и установки APK. Пожалуйста, подтвердите установку файла.' : 'Файл успешно подготовлен! Нажмите кнопку ниже для сохранения на диск.' }}
+                  </p>
                 </div>
               </template>
 
@@ -159,7 +194,7 @@ function triggerInstall() {
                 <FpButton variant="text" @click="close" class="footer-btn">Позже</FpButton>
                 <FpButton variant="primary" @click="startDownload" class="footer-btn action-btn">
                   <template #icon><Download :size="18" /></template>
-                  Обновить сейчас
+                  {{ isNative ? 'Обновить' : 'Обновить сейчас' }}
                 </FpButton>
               </template>
 
@@ -168,7 +203,9 @@ function triggerInstall() {
               </template>
 
               <template v-else-if="status === 'success'">
-                <FpButton variant="primary" @click="triggerInstall" class="footer-btn full-btn">Установить APK</FpButton>
+                <FpButton variant="primary" @click="triggerInstall" class="footer-btn full-btn">
+                  {{ isNative ? 'Открыть в браузере' : 'Сохранить APK' }}
+                </FpButton>
               </template>
 
               <template v-else-if="status === 'error'">
@@ -182,6 +219,7 @@ function triggerInstall() {
     </Transition>
   </Teleport>
 </template>
+
 
 <style scoped lang="scss">
 .update-modal-overlay {

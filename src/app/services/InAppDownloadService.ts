@@ -1,5 +1,5 @@
-import { Filesystem, Directory } from '@capacitor/filesystem'
 import { Capacitor } from '@capacitor/core'
+
 
 export type ProgressCallback = (progress: number, downloadedBytes: number, totalBytes: number) => void
 
@@ -11,78 +11,71 @@ export class InAppDownloadService {
   static async downloadApk(url: string, onProgress: ProgressCallback): Promise<string | null> {
     try {
       if (Capacitor.isNativePlatform()) {
-        const progressListener = await Filesystem.addListener('progress', (status: { url?: string, bytes: number, contentLength: number }) => {
-          if (status.contentLength > 0) {
-            const pct = Math.min(100, Math.round((status.bytes / status.contentLength) * 100))
-            onProgress(pct, status.bytes, status.contentLength)
-          }
-        })
-
-        const downloadResult = await Filesystem.downloadFile({
-          url,
-          path: 'Rostok_update.apk',
-          directory: Directory.Cache,
-          progress: true
-        })
-
-        try {
-          await progressListener.remove()
-        } catch {
-          // Игнорируем ошибку удаления слушателя
-        }
-
-        if (downloadResult && downloadResult.path) {
-          onProgress(100, 4800000, 4800000)
-          return downloadResult.path
-        }
+        // На нативной платформе мы возвращаем исходный URL, так как установка
+        // будет безопасно выполнена через системный браузер во избежание ограничений доступа к файлам кэша.
+        return url
       } else {
-        // Веб-фоллбэк: загрузка через fetch с отображением прогресса
+        // Веб-версия: скачиваем файл один раз как Blob с отображением прогресса
         const response = await fetch(url)
         if (!response.body) {
-          onProgress(100, 4800000, 4800000)
           return url
         }
 
-        const contentLength = +(response.headers.get('Content-Length') || 4800000)
+        const contentLength = +(response.headers.get('Content-Length') || 0)
         const reader = response.body.getReader()
         let receivedLength = 0
+        const chunks: Uint8Array[] = []
 
         while (true) {
           const { done, value } = await reader.read()
           if (done) {
-            onProgress(100, contentLength, contentLength)
             break
           }
-          receivedLength += value?.length || 0
-          const pct = Math.min(100, Math.round((receivedLength / contentLength) * 100))
-          onProgress(pct, receivedLength, contentLength)
+          if (value) {
+            chunks.push(value)
+            receivedLength += value.length
+            if (contentLength > 0) {
+              const pct = Math.min(100, Math.round((receivedLength / contentLength) * 100))
+              onProgress(pct, receivedLength, contentLength)
+            }
+          }
         }
 
-        // Для веб-версии можно создать URL объекта для сохранения, но проще сразу возвращать url
-        return url
+        const blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' })
+        return URL.createObjectURL(blob)
       }
     } catch (err) {
-      console.error('Ошибка скачивания in-app APK:', err)
-      return null
+      console.error('Ошибка подготовки APK:', err)
+      return url
     }
-    return null
   }
 
   /**
-   * Запускает установку скачанного APK в системе Android
+   * Запускает установку скачанного APK в системе Android или скачивание в вебе
    */
-  static async installApk(filePathOrUrl: string, fallbackUrl: string) {
+  static async installApk(filePathOrUrl: string, fallbackUrl: string): Promise<void> {
     try {
-      if (Capacitor.isNativePlatform() && filePathOrUrl !== fallbackUrl) {
-        // Конвертируем путь из кэша в локальный URI для вызова установщика
-        const fileUri = Capacitor.convertFileSrc(filePathOrUrl)
-        window.open(fileUri, '_system')
+      if (Capacitor.isNativePlatform()) {
+        // Открываем во внешнем браузере, чтобы Android скачал и установил APK
+        window.open(fallbackUrl, '_system')
       } else {
-        window.open(fallbackUrl, '_blank')
+        // В веб-версии создаем невидимую ссылку для сохранения Blob-файла на диск
+        const link = document.createElement('a')
+        link.href = filePathOrUrl
+        link.download = 'Rostok.apk'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        
+        // Освобождаем память Blob URL
+        if (filePathOrUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(filePathOrUrl)
+        }
       }
     } catch (e) {
-      console.warn('Не удалось запустить нативный интент, открытие ссылки в браузере:', e)
+      console.warn('Ошибка при установке/сохранении файла:', e)
       window.open(fallbackUrl, '_blank')
     }
   }
 }
+
