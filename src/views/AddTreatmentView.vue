@@ -87,18 +87,38 @@ const selectedPlantsText = computed(() => {
   return `Выбрано: ${count}`
 })
 
+const futureDateText = computed(() => {
+  if (!enableReminder.value || !reminderDays.value || !form.value.date) return ''
+  const baseDate = new Date(form.value.date)
+  const futureDate = new Date(baseDate.getTime())
+  futureDate.setDate(futureDate.getDate() + Number(reminderDays.value))
+  const months = [
+    'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+  ]
+  const weekdays = [
+    'воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'
+  ]
+  return `${futureDate.getDate()} ${months[futureDate.getMonth()]} (${weekdays[futureDate.getDay()]})`
+})
+
 onMounted(async () => {
   if (route.query.care_type) {
     form.value.type = String(route.query.care_type)
-    if (form.value.type === 'fertilizing') {
-      enableReminder.value = true
-      reminderDays.value = 14
+    if (form.value.type === 'fertilizing' || form.value.type === 'spraying') {
+      if (route.query.reminder !== undefined) {
+        enableReminder.value = route.query.reminder === 'true'
+      } else {
+        enableReminder.value = form.value.type === 'fertilizing'
+      }
+      reminderDays.value = route.query.reminder_days ? Number(route.query.reminder_days) : 14
     }
   }
   if (route.query.product) form.value.product = String(route.query.product)
   if (route.query.dose) form.value.dose = String(route.query.dose)
   if (route.query.note) form.value.note = String(route.query.note)
   if (route.query.selected_id) form.value.selected_ids = [String(route.query.selected_id)]
+
 
   try {
     const [fetchedPlants, myPlants, products] = await Promise.all([
@@ -289,12 +309,19 @@ async function save() {
           <button class="rem-btn" :class="{ active: !enableReminder }" @click="enableReminder = false">Нет</button>
           <button class="rem-btn" :class="{ active: enableReminder && reminderDays === 7 }" @click="enableReminder = true; reminderDays = 7">7 дн</button>
           <button class="rem-btn" :class="{ active: enableReminder && reminderDays === 14 }" @click="enableReminder = true; reminderDays = 14">14 дн</button>
+          <button class="rem-btn" :class="{ active: enableReminder && reminderDays === 21 }" @click="enableReminder = true; reminderDays = 21">21 дн</button>
         </div>
-        <div v-if="enableReminder" style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 13px; color: var(--color-text-secondary);">Через:</span>
-          <input type="number" v-model="reminderDays" class="field-input" style="width: 80px; padding: 8px; text-align: center;" min="1" max="365" />
-          <span style="font-size: 13px; color: var(--color-text-secondary);">дней</span>
+        <div v-if="enableReminder" class="reminder-custom-input-row">
+          <span class="custom-label">Через:</span>
+          <input type="number" v-model="reminderDays" class="field-input custom-days-input" min="1" max="365" />
+          <span class="custom-label">дней</span>
         </div>
+
+        <transition name="fade">
+          <div v-if="enableReminder && futureDateText" class="future-date-badge">
+            📅 Следующий уход: <strong>{{ futureDateText }}</strong>
+          </div>
+        </transition>
       </div>
 
       <button class="save-btn" :disabled="form.selected_ids.length === 0 || saving" @click="save">
@@ -383,6 +410,45 @@ async function save() {
   border-radius: var(--radius-md); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
   &:hover { color: var(--color-text-primary); }
   &.active { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+}
+
+.reminder-custom-input-row {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.custom-days-input {
+  width: 80px !important;
+  padding: 8px !important;
+  text-align: center;
+  height: 38px;
+}
+
+.future-date-badge {
+  margin-top: 12px;
+  background: var(--color-primary-subtle, rgba(45, 106, 79, 0.12));
+  color: var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-left: 3px solid var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  strong {
+    color: var(--color-text-primary);
+    font-weight: 700;
+  }
 }
 .save-btn {
   display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px;

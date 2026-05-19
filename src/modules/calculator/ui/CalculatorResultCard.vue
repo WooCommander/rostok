@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import { Droplets, Scale, AlertCircle, Utensils, Award, BookPlus } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import type { CalculationResult, FertilizerMeta } from '../services/CalculatorService'
@@ -11,12 +12,31 @@ interface Props {
 const props = defineProps<Props>()
 const router = useRouter()
 
+const repeatInterval = ref(14)
+
+const futureDateText = computed(() => {
+  if (repeatInterval.value <= 0) return ''
+  const futureDate = new Date()
+  futureDate.setDate(futureDate.getDate() + repeatInterval.value)
+  const months = [
+    'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+  ]
+  const weekdays = [
+    'воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'
+  ]
+  return `${futureDate.getDate()} ${months[futureDate.getMonth()]} (${weekdays[futureDate.getDay()]})`
+})
+
 function logTreatment() {
   const p = encodeURIComponent(props.fertilizer.name)
   const d = encodeURIComponent(`${props.result.fertilizerAmountGrams}г на ${props.result.waterAmountLiters}л воды`)
   const n = encodeURIComponent(`Расчет по агрокалькулятору. ${props.result.tips}`)
-  router.push(`/journal/add?care_type=fertilizing&product=${p}&dose=${d}&note=${n}`)
+  const reminder = repeatInterval.value > 0 ? 'true' : 'false'
+  const reminderDays = repeatInterval.value
+  router.push(`/journal/add?care_type=fertilizing&product=${p}&dose=${d}&note=${n}&reminder=${reminder}&reminder_days=${reminderDays}`)
 }
+
 </script>
 
 <template>
@@ -66,12 +86,29 @@ function logTreatment() {
       <p class="tips-text">{{ props.result.tips }}</p>
     </div>
 
+    <div class="reminder-selector-box">
+      <label class="reminder-label">⏰ Напомнить повторно через:</label>
+      <select v-model="repeatInterval" class="reminder-select">
+        <option :value="0">Не напоминать</option>
+        <option :value="7">7 дней (через неделю)</option>
+        <option :value="14">14 дней (через 2 недели)</option>
+        <option :value="21">21 день (через 3 недели)</option>
+      </select>
+      
+      <transition name="fade">
+        <div v-if="repeatInterval > 0 && futureDateText" class="future-date-badge">
+          📅 Следующая подкормка: <strong>{{ futureDateText }}</strong>
+        </div>
+      </transition>
+    </div>
+
     <div class="actions-box">
       <button class="log-btn" @click="logTreatment">
         <BookPlus :size="18" />
         Записать в журнал ухода
       </button>
     </div>
+
   </div>
 </template>
 
@@ -229,6 +266,60 @@ function logTreatment() {
   font-size: 14px;
   line-height: 1.5;
   color: var(--color-text-primary);
+}
+
+.reminder-selector-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+}
+
+.reminder-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.reminder-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s;
+
+  &:focus {
+    border-color: var(--color-primary);
+  }
+}
+
+.future-date-badge {
+  margin-top: 4px;
+  background: var(--color-primary-subtle, rgba(45, 106, 79, 0.12));
+  color: var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border-left: 3px solid var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  strong {
+    color: var(--color-text-primary);
+    font-weight: 700;
+  }
 }
 
 .actions-box {
