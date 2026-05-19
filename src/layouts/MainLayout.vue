@@ -31,9 +31,61 @@ const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+// Свайп слева для перехода на главную
+const swipeStartX = ref(0)
+const swipeStartY = ref(0)
+const isLeftSwipeActive = ref(false)
+const swipeDiffX = ref(0)
+
+const handleTouchStart = (e: TouchEvent) => {
+  const touch = e.touches[0]
+  // Инициируем жест только от левой границы экрана (до 40px) и не на главной/авторизации
+  if (touch.clientX < 40 && route.path !== '/' && route.path !== '/login') {
+    swipeStartX.value = touch.clientX
+    swipeStartY.value = touch.clientY
+    isLeftSwipeActive.value = true
+    swipeDiffX.value = 0
+  } else {
+    isLeftSwipeActive.value = false
+  }
+}
+
+const handleTouchMove = (e: TouchEvent) => {
+  if (!isLeftSwipeActive.value) return
+  
+  const touch = e.touches[0]
+  const dx = touch.clientX - swipeStartX.value
+  const dy = touch.clientY - swipeStartY.value
+  
+  // Если скроллинг вертикальный, отменяем жест
+  if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
+    isLeftSwipeActive.value = false
+    return
+  }
+  
+  if (dx > 0) {
+    swipeDiffX.value = dx
+    // Предотвращаем стандартный горизонтальный скролл страницы
+    if (e.cancelable) e.preventDefault()
+  }
+}
+
+const handleTouchEnd = () => {
+  if (!isLeftSwipeActive.value) return
+  isLeftSwipeActive.value = false
+  
+  // Если свайпнули дальше 100px, возвращаемся на главную
+  if (swipeDiffX.value > 100) {
+    FpHaptics.light()
+    router.push('/')
+  }
+  swipeDiffX.value = 0
+}
+
 onMounted(() => {
   window.addEventListener('scroll', checkScroll, { passive: true })
 })
+
 
 onUnmounted(() => {
   window.removeEventListener('scroll', checkScroll)
@@ -64,7 +116,23 @@ const handleLogout = async () => {
 </script>
 
 <template>
-  <div class="main-layout">
+  <div class="main-layout"
+       @touchstart="handleTouchStart"
+       @touchmove="handleTouchMove"
+       @touchend="handleTouchEnd"
+       @touchcancel="handleTouchEnd">
+
+    <!-- Визуальный индикатор свайпа на главную -->
+    <div 
+      class="left-swipe-indicator" 
+      :style="{ 
+        transform: `translateY(-50%) translateX(${Math.min(swipeDiffX * 0.45 - 48, 0)}px)`,
+        opacity: Math.min(swipeDiffX / 80, 1)
+      }"
+    >
+      <Home :size="20" class="indicator-icon" :class="{ 'ready': swipeDiffX > 100 }" />
+    </div>
+
 
     <!-- Top bar -->
     <header class="top-nav">
@@ -643,4 +711,36 @@ const handleLogout = async () => {
   opacity: 0;
   transform: scale(0.8);
 }
+
+.left-swipe-indicator {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  width: 44px;
+  height: 80px;
+  background: var(--color-primary);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  z-index: 9999;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  transition: opacity 0.15s ease;
+  will-change: transform, opacity;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: none;
+
+  .indicator-icon {
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.2s ease;
+    transform: scale(0.9);
+
+    &.ready {
+      transform: scale(1.25);
+      color: #FFF2D6;
+    }
+  }
+}
 </style>
+
