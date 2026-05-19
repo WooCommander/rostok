@@ -35,6 +35,11 @@ const stats = ref({
   totalPlantsBaseCount: 0
 })
 const treatmentCount = ref(0)
+const activityData = ref<{ month: string; count: number }[]>([])
+
+const maxBarValue = computed(() => {
+  return Math.max(...activityData.value.map(d => d.count), 0)
+})
 
 // Saved Tips
 const { getSavedTips } = useTipsState()
@@ -71,7 +76,7 @@ async function loadStats() {
 
     const { data: treatments, count } = await supabase
       .from('treatment_log')
-      .select('product', { count: 'exact' })
+      .select('product, treated_at', { count: 'exact' })
       .eq('user_id', user.value.id)
 
     stats.value.treatmentsCount = count || 0
@@ -83,6 +88,32 @@ async function loadStats() {
         .filter((p): p is string => !!p && p.trim() !== '')
       stats.value.uniqueProductsCount = new Set(products).size
     }
+
+    const last6Months: { key: string; label: string; count: number }[] = []
+    const monthLabels = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек']
+    
+    const now = new Date()
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const year = d.getFullYear()
+      const monthIdx = d.getMonth()
+      const key = `${year}-${String(monthIdx + 1).padStart(2, '0')}`
+      const label = monthLabels[monthIdx]
+      last6Months.push({ key, label, count: 0 })
+    }
+
+    if (treatments) {
+      treatments.forEach(t => {
+        if (!t.treated_at) return
+        const monthKey = t.treated_at.substring(0, 7)
+        const found = last6Months.find(m => m.key === monthKey)
+        if (found) {
+          found.count++
+        }
+      })
+    }
+
+    activityData.value = last6Months.map(m => ({ month: m.label, count: m.count }))
   } catch (e) {
     console.error('Ошибка загрузки статистики:', e)
   }
@@ -196,6 +227,26 @@ async function logout() {
           <div class="tile-content">
             <div class="tile-num">{{ stats.totalPlantsBaseCount }}</div>
             <div class="tile-label">Культур в энциклопедии</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- График агро-активности -->
+      <div v-if="stats.treatmentsCount > 0" class="activity-chart-wrapper">
+        <div class="activity-chart-title">Интенсивность ухода</div>
+        <div class="activity-chart-box">
+          <div class="chart-bars">
+            <div v-for="bar in activityData" :key="bar.month" class="chart-bar-col">
+              <span class="bar-count-tooltip" :class="{ visible: bar.count > 0 }">{{ bar.count }}</span>
+              <div class="bar-rail">
+                <div 
+                  class="bar-fill-indicator" 
+                  :style="{ height: `${maxBarValue > 0 ? (bar.count / maxBarValue) * 100 : 0}%` }"
+                  :class="{ active: bar.count > 0 }"
+                ></div>
+              </div>
+              <span class="bar-month-label">{{ bar.month }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -622,5 +673,89 @@ async function logout() {
   font-weight: 500;
   color: var(--color-text-secondary);
   line-height: 1.3;
+}
+
+/* ── ACTIVITY CHART ── */
+.activity-chart-wrapper {
+  margin-top: 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.activity-chart-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.activity-chart-box {
+  width: 100%;
+}
+
+.chart-bars {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 100px;
+  padding: 0 6px;
+}
+
+.chart-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+
+.bar-count-tooltip {
+  position: absolute;
+  top: -20px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--color-text-disabled);
+  opacity: 0;
+  transform: translateY(4px);
+  transition: all 0.25s ease;
+
+  &.visible {
+    opacity: 0.7;
+    transform: translateY(0);
+  }
+}
+
+.bar-rail {
+  width: 12px;
+  height: 70px;
+  background: var(--color-surface-hover);
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.bar-fill-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  border-radius: 6px;
+  background: var(--color-border);
+  transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s;
+
+  &.active {
+    background: linear-gradient(180deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 85%, black) 100%);
+  }
+}
+
+.bar-month-label {
+  margin-top: 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
 }
 </style>
