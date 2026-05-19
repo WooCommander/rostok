@@ -5,6 +5,8 @@ import { useRouter } from 'vue-router'
 import { PlantService, type Plant, type UserPlant } from '@/modules/plants/services/PlantService'
 import { authStore } from '@/modules/auth/store/authStore'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
+import FpPullToRefresh from '@/design-system/components/FpPullToRefresh.vue'
+
 
 const router = useRouter()
 const search = ref('')
@@ -281,12 +283,23 @@ function scrollCategoriesBy(amount: number) {
   el.scrollBy({ left: amount, behavior: 'smooth' })
 }
 
+async function onRefresh(done: () => void) {
+  try {
+    await loadData()
+  } catch (err) {
+    console.error('Ошибка Pull-to-refresh на экране Растения:', err)
+  } finally {
+    done()
+  }
+}
+
 onMounted(() => {
   loadData()
   window.addEventListener('scroll', onWindowScroll, { passive: true })
   setTimeout(checkCatScroll, 100)
   window.addEventListener('resize', checkCatScroll, { passive: true })
 })
+
 
 onUnmounted(() => {
   window.removeEventListener('scroll', onWindowScroll)
@@ -295,7 +308,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="plants-view">
+  <FpPullToRefresh @refresh="onRefresh">
+    <div class="plants-view">
+
     <div class="sticky-header-container" :class="{ 'is-scrolled': isScrolled }">
       <div class="page-header">
         <h1 class="header-title">Растения</h1>
@@ -578,8 +593,10 @@ onUnmounted(() => {
       :isDanger="true"
       @confirm="onConfirmDelete"
     />
-  </div>
+    </div>
+  </FpPullToRefresh>
 </template>
+
 
 <style scoped lang="scss">
 .plants-view { padding: 16px 16px 24px; }

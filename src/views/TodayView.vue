@@ -6,6 +6,7 @@ import { WeatherService, type WeatherData } from '@/modules/weather/services/Wea
 import { PlantService, type PlantCare, type Plant } from '@/modules/plants/services/PlantService'
 import { useReminderState, ReminderNotificationCard } from '@/modules/reminders'
 import { useTipsState, TipOfTheDayModal } from '@/modules/tips'
+import FpPullToRefresh from '@/design-system/components/FpPullToRefresh.vue'
 
 const router = useRouter()
 
@@ -92,6 +93,19 @@ function onCompleteReminder(id: string, raw: any) {
   router.push(`/journal/add?care_type=${raw.careType}&product=${p}&dose=${d}&selected_id=${sel}`)
 }
 
+async function onRefresh(done: () => void) {
+  try {
+    await Promise.all([
+      loadWeather(),
+      loadForToday()
+    ])
+  } catch (err) {
+    console.error('Ошибка Pull-to-refresh на экране Сегодня:', err)
+  } finally {
+    done()
+  }
+}
+
 onMounted(() => {
   loadWeather()
   loadForToday()
@@ -101,10 +115,13 @@ onMounted(() => {
     showTipModal.value = true
   }
 })
+
 </script>
 
 <template>
-  <div class="today-view">
+  <FpPullToRefresh @refresh="onRefresh">
+    <div class="today-view">
+
     <div class="page-header">
       <div class="header-meta">{{ today }}</div>
       <h1 class="header-title">Что нужно сделать</h1>
@@ -262,8 +279,10 @@ onMounted(() => {
       @update:model-value="onTipModalClose"
       @next="nextTip"
     />
-  </div>
+    </div>
+  </FpPullToRefresh>
 </template>
+
 
 <style scoped lang="scss">
 .today-view { padding: 16px 16px 24px; }

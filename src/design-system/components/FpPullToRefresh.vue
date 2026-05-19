@@ -58,6 +58,7 @@ const onTouchEnd = () => {
 <template>
   <div class="fp-pull-to-refresh" 
        ref="containerRef"
+       :class="{ 'is-pulling': isPulling }"
        @touchstart="onTouchStart" 
        @touchmove="onTouchMove" 
        @touchend="onTouchEnd"
@@ -97,7 +98,7 @@ const onTouchEnd = () => {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  transition: height 0.3s ease, opacity 0.3s ease;
+  transition: height 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease;
   z-index: 10;
 }
 
@@ -134,7 +135,16 @@ const onTouchEnd = () => {
 }
 
 .ptr-content {
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
   will-change: transform;
 }
+
+// Отключаем анимации перехода во время натягивания пальцем для отзывчивого UX
+.fp-pull-to-refresh.is-pulling {
+  .pull-indicator,
+  .ptr-content {
+    transition: none !important;
+  }
+}
 </style>
+
