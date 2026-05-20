@@ -3,12 +3,14 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, X, ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { ProductService, type ProductItem, ProductCard } from '@/modules/products'
+import { TankMixerWidget } from '@/modules/tank-mixer'
 
 const router = useRouter()
 
 const searchQuery = ref('')
 const selectedCategory = ref('all')
 const products = ref<ProductItem[]>([])
+const allProducts = ref<ProductItem[]>([])
 const loading = ref(true)
 
 const CATEGORIES = [
@@ -71,7 +73,8 @@ function scrollCatsBy(amount: number) {
   el.scrollBy({ left: amount, behavior: 'smooth' })
 }
 
-onMounted(() => {
+onMounted(async () => {
+  allProducts.value = await ProductService.searchProducts('', 'all')
   loadProducts()
   window.addEventListener('scroll', onWindowScroll, { passive: true })
   setTimeout(checkCatScroll, 100)
@@ -135,6 +138,8 @@ onUnmounted(() => {
     </div>
 
     <div class="products-container">
+      <TankMixerWidget v-if="allProducts.length > 0" :products="allProducts" />
+
       <div v-if="loading" class="grid-list">
         <div v-for="i in 6" :key="i" class="skel-card">
           <div class="skel skel-top"></div>
