@@ -112,6 +112,23 @@ const savingModal = ref(false)
 const uploadingPhoto = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
+const showTimelapseModal = ref(false)
+const timelapsePhotos = ref<{url: string; createdAt: string}[]>([])
+const loadingTimelapse = ref(false)
+
+async function openTimelapse() {
+  if (!editingPlant.value) return
+  loadingTimelapse.value = true
+  showTimelapseModal.value = true
+  try {
+    timelapsePhotos.value = await PlantService.getGardenPhotos(editingPlant.value.id)
+  } catch (err) {
+    console.error('Ошибка загрузки истории фото:', err)
+  } finally {
+    loadingTimelapse.value = false
+  }
+}
+
 function triggerPhotoSelect() {
   fileInputRef.value?.click()
 }
@@ -562,6 +579,9 @@ onUnmounted(() => {
                   <span>{{ uploadingPhoto ? 'Загрузка...' : (editingPlant.photo_url ? 'Заменить фото' : 'Загрузить фото') }}</span>
                 </button>
               </div>
+              <button class="timelapse-btn" v-if="editingPlant.photo_url" @click="openTimelapse">
+                📸 История роста (Таймлапс)
+              </button>
               <input type="file" accept="image/*" ref="fileInputRef" style="display:none" @change="onPhotoSelected" />
             </div>
 
@@ -595,6 +615,35 @@ onUnmounted(() => {
               <button class="save-btn" @click="saveEditPlant" :disabled="savingModal">
                 {{ savingModal ? 'Сохранение...' : 'Сохранить' }}
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Модальное окно истории роста (Таймлапс) -->
+      <div v-if="showTimelapseModal" class="modal-backdrop timelapse-backdrop" @click="showTimelapseModal = false">
+        <div class="modal-box timelapse-box" @click.stop>
+          <div class="modal-header">
+            <h3>История роста</h3>
+            <button class="close-btn" @click="showTimelapseModal = false">✕</button>
+          </div>
+          <div class="modal-body timelapse-body">
+            <div v-if="loadingTimelapse" class="timelapse-loading">
+              <span>Загрузка архива...</span>
+            </div>
+            <div v-else-if="timelapsePhotos.length === 0" class="timelapse-empty">
+              Нет предыдущих фотографий. Загружайте новые фото, чтобы увидеть историю!
+            </div>
+            <div v-else class="timelapse-feed">
+              <div v-for="(photo, idx) in timelapsePhotos" :key="photo.url" class="timelapse-item">
+                <div class="timelapse-meta">
+                  <span class="timelapse-step">Этап {{ idx + 1 }}</span>
+                  <span class="timelapse-date">{{ new Date(photo.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }) }}</span>
+                </div>
+                <div class="timelapse-img-wrapper">
+                  <img :src="photo.url" class="timelapse-img" loading="lazy" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -863,6 +912,114 @@ onUnmounted(() => {
 .filters-slide-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+.timelapse-btn {
+  width: 100%;
+  margin-top: 12px;
+  background: rgba(45, 106, 79, 0.1);
+  border: 1px solid rgba(45, 106, 79, 0.2);
+  color: var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: rgba(45, 106, 79, 0.2);
+  }
+}
+
+.timelapse-backdrop {
+  z-index: 2500;
+}
+
+.timelapse-box {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.timelapse-body {
+  overflow-y: auto;
+  padding-bottom: 24px;
+  background: var(--color-background);
+}
+
+.timelapse-loading, .timelapse-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.timelapse-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 12px;
+}
+
+.timelapse-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timelapse-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.timelapse-step {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  background: rgba(45, 106, 79, 0.1);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.timelapse-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.timelapse-img-wrapper {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  background: var(--color-surface);
+}
+
+.timelapse-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.picker-fade-enter-active,
+.picker-fade-leave-active {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.picker-fade-enter-from,
+.picker-fade-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
 }
 
 /* ── HORIZONTAL CATEGORIES SCROLL ── */

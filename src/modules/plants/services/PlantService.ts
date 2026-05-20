@@ -310,5 +310,30 @@ export const PlantService = {
     await this.updateUserPlant(userPlantId, { photo_url: photoUrl })
 
     return photoUrl
+  },
+
+  async getGardenPhotos(userPlantId: string): Promise<{ url: string; createdAt: string }[]> {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    const { data, error } = await supabase.storage
+      .from('garden_photos')
+      .list(user.id, {
+        sortBy: { column: 'created_at', order: 'asc' }
+      })
+
+    if (error || !data) return []
+
+    const files = data.filter(f => f.name.startsWith(`${userPlantId}_`))
+    
+    return files.map(f => {
+      const { data: publicData } = supabase.storage
+        .from('garden_photos')
+        .getPublicUrl(`${user.id}/${f.name}`)
+      return {
+        url: publicData.publicUrl,
+        createdAt: f.created_at
+      }
+    })
   }
 }
