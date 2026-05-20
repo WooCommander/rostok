@@ -41,6 +41,10 @@ const maxBarValue = computed(() => {
   return Math.max(...activityData.value.map(d => d.count), 0)
 })
 
+// XP & Gardener Ranks
+import { useProfileState } from '../state/useProfileState'
+const { userXp, gardenerRank, xpProgressPercentage, loadXp } = useProfileState()
+
 // Saved Tips
 const { getSavedTips } = useTipsState()
 const savedTips = computed(() => getSavedTips())
@@ -114,6 +118,7 @@ async function loadStats() {
     }
 
     activityData.value = last6Months.map(m => ({ month: m.label, count: m.count }))
+    loadXp()
   } catch (e) {
     console.error('Ошибка загрузки статистики:', e)
   }
@@ -161,7 +166,28 @@ async function logout() {
       <div class="avatar">{{ avatarLetter }}</div>
       <div class="user-info">
         <div class="user-email">{{ user?.email || 'Гость' }}</div>
-        <div class="user-stat">{{ treatmentCount }} записей в журнале</div>
+        
+        <div class="gardener-rank-row">
+          <span class="gardener-rank-badge" :style="{ backgroundColor: gardenerRank.color + '15', color: gardenerRank.color }">
+            {{ gardenerRank.emoji }} {{ gardenerRank.rank }}
+          </span>
+          <span class="gardener-xp-value">{{ userXp }} XP</span>
+        </div>
+
+        <!-- Прогресс-бар XP -->
+        <div class="xp-progress-container" v-if="userXp < 180">
+          <div class="xp-progress-bar">
+            <div class="xp-progress-fill" :style="{ width: `${xpProgressPercentage}%`, backgroundColor: gardenerRank.color }"></div>
+          </div>
+          <div class="xp-progress-labels">
+            <span>До следующего ранга: осталось {{ gardenerRank.nextXp - userXp }} XP</span>
+          </div>
+        </div>
+        <div class="xp-progress-container" v-else>
+          <div class="xp-progress-labels">
+            <span :style="{ color: gardenerRank.color, fontWeight: '700' }">🏆 Достигнут высший ранг!</span>
+          </div>
+        </div>
       </div>
     </div>
 
