@@ -7,6 +7,7 @@ import { PlantService, type PlantCare, type Plant } from '@/modules/plants/servi
 import { useReminderState, ReminderNotificationCard, type EnrichedReminder } from '@/modules/reminders'
 import { useTipsState, TipOfTheDayModal } from '@/modules/tips'
 import { AgroQuizWidget } from '@/modules/quiz'
+import NeighborFeed from '@/modules/social/components/NeighborFeed.vue'
 import FpPullToRefresh from '@/design-system/components/FpPullToRefresh.vue'
 
 const router = useRouter()
@@ -279,6 +280,9 @@ onMounted(() => {
 
     <!-- Агро-квиз «Правда или Миф» -->
     <AgroQuizWidget />
+
+    <!-- Лента соседей (Социальные фичи) -->
+    <NeighborFeed />
 
     <!-- Recommendations -->
     <section class="section">
