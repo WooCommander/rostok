@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { LogOut, MapPin, Thermometer, ChevronRight, Sun, Moon, FileText, RefreshCw, Bookmark, Sprout, ShieldAlert, BarChart3, Database } from 'lucide-vue-next'
+import { LogOut, MapPin, Thermometer, ChevronRight, Sun, Moon, FileText, RefreshCw, Bookmark, Sprout, ShieldAlert, BarChart3, Database, Users } from 'lucide-vue-next'
 import { authStore } from '@/modules/auth/store/authStore'
 import { useTheme } from '@/composables/useTheme'
 import { supabase } from '@/api/supabase'
@@ -27,6 +27,7 @@ function upgradeAccount() {
 const region = ref('')
 const tempSource = ref<'auto' | 'manual'>('auto')
 const manualTemp = ref<number | null>(null)
+const communityVisible = ref(false)
 const saving = ref(false)
 const saved = ref(false)
 const gpsLoading = ref(false)
@@ -70,6 +71,7 @@ async function loadSettings() {
     region.value = data.region || ''
     tempSource.value = data.temp_source || 'auto'
     manualTemp.value = data.manual_temp ?? null
+    communityVisible.value = data.community_visible ?? false
   }
 }
 
@@ -148,7 +150,8 @@ async function saveSettings() {
     user_id: user.value.id,
     region: region.value,
     temp_source: tempSource.value,
-    manual_temp: tempSource.value === 'manual' ? manualTemp.value : null
+    manual_temp: tempSource.value === 'manual' ? manualTemp.value : null,
+    community_visible: communityVisible.value
   }
   await supabase.from('user_settings').upsert(payload)
   saving.value = false
@@ -347,6 +350,30 @@ async function logout() {
       </div>
 
       <div v-if="saved" class="saved-badge">✓ Сохранено</div>
+    </div>
+
+    <!-- Сообщество -->
+    <div class="section">
+      <div class="section-title">
+        <Users :size="14" style="margin-right: 4px; display: inline-block; vertical-align: middle;" />
+        Сообщество
+      </div>
+      <div class="settings-card">
+        <div class="setting-row">
+          <div class="setting-label">
+            Показывать мою активность
+          </div>
+          <div class="setting-control">
+            <label class="toggle-switch">
+              <input type="checkbox" v-model="communityVisible" @change="saveSettings" />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="community-hint">
+          Когда включено, ваши записи журнала (полив, обработки и т.д.) будут видны другим огородникам в ленте «Сообщество». Ваш email и личные данные НЕ показываются.
+        </div>
+      </div>
     </div>
 
     <!-- Уведомления -->
@@ -808,5 +835,60 @@ async function logout() {
   font-size: 10.5px;
   font-weight: 600;
   color: var(--color-text-secondary);
+}
+
+/* ── Toggle switch ── */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-border);
+  border-radius: 24px;
+  transition: background 0.25s;
+
+  &::before {
+    content: '';
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.25s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: var(--color-primary);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}
+
+.community-hint {
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-tertiary);
+  border-top: 1px solid var(--color-border);
 }
 </style>

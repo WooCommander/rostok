@@ -70,6 +70,26 @@ export const JournalService = {
       .select('*, plant:plants(name, emoji), user_plant:user_plants(nickname, location_note)')
     
     if (error) throw error
+
+    // Публикуем в ленту сообщества (async, не блокируем)
+    try {
+      const { SocialService } = await import('@/modules/social/services/SocialService')
+      const items = Array.isArray(itemsToInsert) ? itemsToInsert : [itemsToInsert]
+      for (const entry of items) {
+        const plantData = entry.plants_data as { name: string; emoji: string; location_note?: string }[] | undefined
+        if (plantData && plantData.length > 0) {
+          for (const p of plantData) {
+            SocialService.publishActivity({
+              actionType: entry.care_type,
+              plantName: p.name,
+              plantEmoji: p.emoji,
+              locationLabel: p.location_note
+            })
+          }
+        }
+      }
+    } catch (_) { /* не критично */ }
+
     return isArray ? data : data[0]
   },
 
