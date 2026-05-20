@@ -70,7 +70,7 @@ export const PlantService = {
       if (!error && data) {
         remotePlants = data
       }
-    } catch (_) {}
+    } catch (_) { }
 
     const map = new Map<string, Plant>()
     SEED_PLANTS.forEach(p => map.set(p.name, enrichPlant(p)))
@@ -91,7 +91,7 @@ export const PlantService = {
         .eq('id', id)
         .single()
       if (!error && data) return enrichPlant(data)
-    } catch (_) {}
+    } catch (_) { }
 
     const found = SEED_PLANTS.find(p => p.id === id || p.name === id)
     return found ? enrichPlant(found) : null
@@ -108,7 +108,7 @@ export const PlantService = {
         if (!error && data) {
           remoteCare = data
         }
-      } catch (_) {}
+      } catch (_) { }
     }
 
     if (remoteCare.length > 0) return remoteCare
@@ -131,7 +131,7 @@ export const PlantService = {
 
     const local = plantSecretsData[plantName] || []
     const map = new Map<string, PlantSecret>()
-    
+
     local.forEach((item, index) => {
       map.set(item.title, {
         ...item,
@@ -161,7 +161,7 @@ export const PlantService = {
       if (!error && data) {
         remote = data
       }
-    } catch (_) {}
+    } catch (_) { }
 
     const localCare = SEED_CARE.filter(c => {
       const inMonth = month >= c.month_from && month <= c.month_to
@@ -206,7 +206,7 @@ export const PlantService = {
       .select('*, plant:plants(*)')
       .eq('user_id', user.id)
     if (error) throw error
-    
+
     const list = data || []
     return list.map(item => {
       if (!item.plant) {

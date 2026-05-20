@@ -88,16 +88,16 @@ const groupedGarden = computed(() => {
   for (const u of userPlantsList.value) {
     const p = u.plant || plants.value.find(item => item.id === u.plant_id)
     if (!p) continue
-    
+
     const matchCat = activeCategory.value === 'all' || p.category === activeCategory.value
     const s = search.value.toLowerCase().trim()
-    const matchSearch = !s || 
+    const matchSearch = !s ||
       p.name.toLowerCase().includes(s) ||
       (u.nickname && u.nickname.toLowerCase().includes(s)) ||
       (u.location_note && u.location_note.toLowerCase().includes(s))
-      
+
     if (!matchCat || !matchSearch) continue
-    
+
     if (!groups.has(p.id)) {
       groups.set(p.id, { plant: p, instances: [] })
     }
@@ -260,10 +260,10 @@ function getHarvestProgress(u: UserPlant) {
   const diffTime = now.getTime() - planted.getTime()
   if (diffTime < 0) return null
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-  
+
   const remaining = Math.max(0, u.days_to_harvest - diffDays)
   const percent = Math.min(100, Math.round((diffDays / u.days_to_harvest) * 100))
-  
+
   let status = 'normal'
   if (remaining <= 14 && remaining > 0) status = 'warning'
   if (remaining === 0) status = 'ready'
@@ -331,310 +331,288 @@ onUnmounted(() => {
   <FpPullToRefresh @refresh="onRefresh">
     <div class="plants-view">
 
-    <div class="sticky-header-container" :class="{ 'is-scrolled': isScrolled }">
-      <div class="page-header">
-        <h1 class="header-title">Растения</h1>
-      </div>
-
-      <!-- Tabs -->
-      <div class="tabs-wrap">
-        <button
-          class="tab-btn"
-          :class="{ active: activeTab === 'catalog' }"
-          @click="activeTab = 'catalog'"
-        >
-          Каталог
-        </button>
-        <button
-          class="tab-btn"
-          :class="{ active: activeTab === 'garden' }"
-          @click="activeTab = 'garden'"
-        >
-          Мой огород
-          <span v-if="userPlantsList.length" class="badge">{{ userPlantsList.length }}</span>
-        </button>
-      </div>
-
-      <div class="search-wrap">
-        <Search :size="16" class="search-icon" />
-        <input v-model="search" class="search-input" :placeholder="activeTab === 'garden' ? 'Поиск грядки, сорта, культуры...' : 'Поиск растения...'" />
-        <button
-          v-if="activeTab === 'catalog'"
-          class="filter-toggle-btn"
-          :class="{ active: showFilters || activeFilterCount > 0 }"
-          @click="showFilters = !showFilters"
-          title="Фильтры по условиям"
-        >
-          <SlidersHorizontal :size="16" />
-          <span v-if="activeFilterCount > 0" class="filter-count-badge">{{ activeFilterCount }}</span>
-        </button>
-      </div>
-
-      <div class="scroll-container-wrapper" @mouseenter="checkCatScroll">
-        <button v-show="showCatLeft" class="scroll-arrow left" @click="scrollCategoriesBy(-200)" title="Прокрутить влево">
-          <ChevronLeft :size="18" />
-        </button>
-        
-        <div class="categories-scroll" ref="categoriesScrollRef" @scroll="checkCatScroll">
-          <button
-            v-for="cat in categories" :key="cat.id"
-            class="cat-btn" :class="{ active: activeCategory === cat.id }"
-            @click="activeCategory = cat.id"
-          >{{ cat.label }}</button>
+      <div class="sticky-header-container" :class="{ 'is-scrolled': isScrolled }">
+        <div class="page-header">
+          <h1 class="header-title">Растения</h1>
         </div>
 
-        <button v-show="showCatRight" class="scroll-arrow right" @click="scrollCategoriesBy(200)" title="Прокрутить вправо">
-          <ChevronRight :size="18" />
-        </button>
-      </div>
-
-      <!-- Расширенные фильтры -->
-      <Transition name="filters-slide">
-        <div v-if="showFilters && activeTab === 'catalog'" class="advanced-filters-box">
-          <div class="filter-header">
-            <span class="filter-box-title">Условия выращивания</span>
-            <button v-if="activeFilterCount > 0" class="reset-filters-btn" @click="resetFilters">
-              <RotateCcw :size="14" /> Сбросить
-            </button>
-          </div>
-
-          <div class="filter-rows">
-            <div class="filter-row">
-              <span class="filter-label">Сложность</span>
-              <div class="filter-pills">
-                <button
-                  v-for="opt in filterOptions.difficulty" :key="opt.id"
-                  class="filter-pill" :class="{ active: activeDifficulty === opt.id }"
-                  @click="activeDifficulty = opt.id"
-                >{{ opt.label }}</button>
-              </div>
-            </div>
-
-            <div class="filter-row">
-              <span class="filter-label">Освещение</span>
-              <div class="filter-pills">
-                <button
-                  v-for="opt in filterOptions.sun" :key="opt.id"
-                  class="filter-pill" :class="{ active: activeSun === opt.id }"
-                  @click="activeSun = opt.id"
-                >{{ opt.label }}</button>
-              </div>
-            </div>
-
-            <div class="filter-row">
-              <span class="filter-label">Полив</span>
-              <div class="filter-pills">
-                <button
-                  v-for="opt in filterOptions.water" :key="opt.id"
-                  class="filter-pill" :class="{ active: activeWater === opt.id }"
-                  @click="activeWater = opt.id"
-                >{{ opt.label }}</button>
-              </div>
-            </div>
-          </div>
+        <!-- Tabs -->
+        <div class="tabs-wrap">
+          <button class="tab-btn" :class="{ active: activeTab === 'catalog' }" @click="activeTab = 'catalog'">
+            Каталог
+          </button>
+          <button class="tab-btn" :class="{ active: activeTab === 'garden' }" @click="activeTab = 'garden'">
+            Мой огород
+            <span v-if="userPlantsList.length" class="badge">{{ userPlantsList.length }}</span>
+          </button>
         </div>
-      </Transition>
-    </div>
 
-    <div v-if="loading" class="plants-grid">
-      <div v-for="i in 6" :key="i" class="plant-card skeleton-card"></div>
-    </div>
+        <div class="search-wrap">
+          <Search :size="16" class="search-icon" />
+          <input v-model="search" class="search-input"
+            :placeholder="activeTab === 'garden' ? 'Поиск грядки, сорта, культуры...' : 'Поиск растения...'" />
+          <button v-if="activeTab === 'catalog'" class="filter-toggle-btn"
+            :class="{ active: showFilters || activeFilterCount > 0 }" @click="showFilters = !showFilters"
+            title="Фильтры по условиям">
+            <SlidersHorizontal :size="16" />
+            <span v-if="activeFilterCount > 0" class="filter-count-badge">{{ activeFilterCount }}</span>
+          </button>
+        </div>
 
-    <!-- Вкладка Огород: Пусто -->
-    <div v-else-if="activeTab === 'garden' && userPlantsList.length === 0" class="empty-garden">
-      <div class="empty-emoji">🌱</div>
-      <h3>В твоём саду пока пусто</h3>
-      <p>Выбери культуры из общего каталога, чтобы настроить сорта, расположение грядок и вести по ним точный журнал!</p>
-      <button class="catalog-btn" @click="activeTab = 'catalog'">Перейти в каталог</button>
-    </div>
+        <div class="scroll-container-wrapper" @mouseenter="checkCatScroll">
+          <button v-show="showCatLeft" class="scroll-arrow left" @click="scrollCategoriesBy(-200)"
+            title="Прокрутить влево">
+            <ChevronLeft :size="18" />
+          </button>
 
-    <!-- Вкладка Огород: Список -->
-    <template v-else-if="activeTab === 'garden'">
-      <div class="garden-header-bar">
-        <span class="count-label">{{ userPlantsList.length }} грядок (в {{ groupedGarden.length }} группах)</span>
-        <button class="add-bed-btn" @click="activeTab = 'catalog'"><Plus :size="16" /> Из каталога</button>
-      </div>
+          <div class="categories-scroll" ref="categoriesScrollRef" @scroll="checkCatScroll">
+            <button v-for="cat in categories" :key="cat.id" class="cat-btn"
+              :class="{ active: activeCategory === cat.id }" @click="activeCategory = cat.id">{{ cat.label }}</button>
+          </div>
 
-      <div class="grouped-garden-container">
-        <div v-for="group in groupedGarden" :key="group.plant.id" class="garden-group-card">
-          <div class="group-header" @click="router.push(`/plants/${group.plant.id}`)">
-            <div class="group-title-left">
-              <span class="group-emoji">{{ group.plant.emoji }}</span>
-              <h2 class="group-name">{{ group.plant.name }}</h2>
-              <span class="instance-count">{{ group.instances.length }} шт.</span>
-            </div>
-            <div class="group-actions">
-              <button class="add-instance-btn" @click.stop="addAnotherInstance(group.plant.id)" title="Добавить экземпляр">
-                <Plus :size="16" /> Добавить
+          <button v-show="showCatRight" class="scroll-arrow right" @click="scrollCategoriesBy(200)"
+            title="Прокрутить вправо">
+            <ChevronRight :size="18" />
+          </button>
+        </div>
+
+        <!-- Расширенные фильтры -->
+        <Transition name="filters-slide">
+          <div v-if="showFilters && activeTab === 'catalog'" class="advanced-filters-box">
+            <div class="filter-header">
+              <span class="filter-box-title">Условия выращивания</span>
+              <button v-if="activeFilterCount > 0" class="reset-filters-btn" @click="resetFilters">
+                <RotateCcw :size="14" /> Сбросить
               </button>
-              <ChevronRight :size="20" class="arrow-icon" />
+            </div>
+
+            <div class="filter-rows">
+              <div class="filter-row">
+                <span class="filter-label">Сложность</span>
+                <div class="filter-pills">
+                  <button v-for="opt in filterOptions.difficulty" :key="opt.id" class="filter-pill"
+                    :class="{ active: activeDifficulty === opt.id }" @click="activeDifficulty = opt.id">{{ opt.label
+                    }}</button>
+                </div>
+              </div>
+
+              <div class="filter-row">
+                <span class="filter-label">Освещение</span>
+                <div class="filter-pills">
+                  <button v-for="opt in filterOptions.sun" :key="opt.id" class="filter-pill"
+                    :class="{ active: activeSun === opt.id }" @click="activeSun = opt.id">{{ opt.label }}</button>
+                </div>
+              </div>
+
+              <div class="filter-row">
+                <span class="filter-label">Полив</span>
+                <div class="filter-pills">
+                  <button v-for="opt in filterOptions.water" :key="opt.id" class="filter-pill"
+                    :class="{ active: activeWater === opt.id }" @click="activeWater = opt.id">{{ opt.label }}</button>
+                </div>
+              </div>
             </div>
           </div>
+        </Transition>
+      </div>
 
-          <div class="group-instances-grid">
-            <div
-              v-for="(uPlant, idx) in group.instances" :key="uPlant.id"
-              class="instance-card"
-              @click="openEditModal(uPlant, $event)"
-            >
-              <div v-if="uPlant.photo_url" class="inst-photo" :style="{ backgroundImage: `url(${uPlant.photo_url})` }"></div>
-              <div v-else class="inst-icon-placeholder">🌱</div>
-              <div class="inst-info">
-                <div class="inst-head-row">
-                  <h4 class="inst-nickname">{{ uPlant.nickname || `${group.plant.name} #${idx + 1}` }}</h4>
-                </div>
-                <div class="inst-tags">
-                  <span v-if="uPlant.location_note" class="tag-loc">📍 {{ uPlant.location_note }}</span>
-                  <span v-if="uPlant.planted_at" class="tag-date">📅 {{ formatDateDisplay(uPlant.planted_at) }}</span>
-                  <span v-if="!uPlant.location_note && !uPlant.planted_at" class="tag-empty">✏️ Указать сорт/грядку</span>
-                </div>
-                
-                <div v-if="getHarvestProgress(uPlant)" class="harvest-progress-container">
-                  <div class="harvest-bar-bg">
-                    <div class="harvest-bar-fill" :class="getHarvestProgress(uPlant)!.status" :style="{ width: getHarvestProgress(uPlant)!.percent + '%' }"></div>
+      <div v-if="loading" class="plants-grid">
+        <div v-for="i in 6" :key="i" class="plant-card skeleton-card"></div>
+      </div>
+
+      <!-- Вкладка Огород: Пусто -->
+      <div v-else-if="activeTab === 'garden' && userPlantsList.length === 0" class="empty-garden">
+        <div class="empty-emoji">🌱</div>
+        <h3>В твоём саду пока пусто</h3>
+        <p>Выбери культуры из общего каталога, чтобы настроить сорта, расположение грядок и вести по ним точный журнал!
+        </p>
+        <button class="catalog-btn" @click="activeTab = 'catalog'">Перейти в каталог</button>
+      </div>
+
+      <!-- Вкладка Огород: Список -->
+      <template v-else-if="activeTab === 'garden'">
+        <div class="garden-header-bar">
+          <span class="count-label">{{ userPlantsList.length }} грядок (в {{ groupedGarden.length }} группах)</span>
+          <button class="add-bed-btn" @click="activeTab = 'catalog'">
+            <Plus :size="16" /> Из каталога
+          </button>
+        </div>
+
+        <div class="grouped-garden-container">
+          <div v-for="group in groupedGarden" :key="group.plant.id" class="garden-group-card">
+            <div class="group-header" @click="router.push(`/plants/${group.plant.id}`)">
+              <div class="group-title-left">
+                <span class="group-emoji">{{ group.plant.emoji }}</span>
+                <h2 class="group-name">{{ group.plant.name }}</h2>
+                <span class="instance-count">{{ group.instances.length }} шт.</span>
+              </div>
+              <div class="group-actions">
+                <button class="add-instance-btn" @click.stop="addAnotherInstance(group.plant.id)"
+                  title="Добавить экземпляр">
+                  <Plus :size="16" /> Добавить
+                </button>
+                <ChevronRight :size="20" class="arrow-icon" />
+              </div>
+            </div>
+
+            <div class="group-instances-grid">
+              <div v-for="(uPlant, idx) in group.instances" :key="uPlant.id" class="instance-card"
+                @click="openEditModal(uPlant, $event)">
+                <div v-if="uPlant.photo_url" class="inst-photo"
+                  :style="{ backgroundImage: `url(${uPlant.photo_url})` }"></div>
+                <div v-else class="inst-icon-placeholder">🌱</div>
+                <div class="inst-info">
+                  <div class="inst-head-row">
+                    <h4 class="inst-nickname">{{ uPlant.nickname || `${group.plant.name} #${idx + 1}` }}</h4>
                   </div>
-                  <div class="harvest-info">
-                    <span v-if="getHarvestProgress(uPlant)!.status === 'ready'" class="harvest-ready">🍅 Урожай готов!</span>
-                    <span v-else-if="getHarvestProgress(uPlant)!.status === 'warning'" class="harvest-warning">⚠️ {{ getHarvestProgress(uPlant)!.remaining }} дн. (переходите на био!)</span>
-                    <span v-else>До сбора: {{ getHarvestProgress(uPlant)!.remaining }} дн.</span>
+                  <div class="inst-tags">
+                    <span v-if="uPlant.location_note" class="tag-loc">📍 {{ uPlant.location_note }}</span>
+                    <span v-if="uPlant.planted_at" class="tag-date">📅 {{ formatDateDisplay(uPlant.planted_at) }}</span>
+                    <span v-if="!uPlant.location_note && !uPlant.planted_at" class="tag-empty">✏️ Указать
+                      сорт/грядку</span>
+                  </div>
+
+                  <div v-if="getHarvestProgress(uPlant)" class="harvest-progress-container">
+                    <div class="harvest-bar-bg">
+                      <div class="harvest-bar-fill" :class="getHarvestProgress(uPlant)!.status"
+                        :style="{ width: getHarvestProgress(uPlant)!.percent + '%' }"></div>
+                    </div>
+                    <div class="harvest-info">
+                      <span v-if="getHarvestProgress(uPlant)!.status === 'ready'" class="harvest-ready">🍅 Урожай
+                        готов!</span>
+                      <span v-else-if="getHarvestProgress(uPlant)!.status === 'warning'" class="harvest-warning">⚠️ {{
+                        getHarvestProgress(uPlant)!.remaining }} дн. (переходите на био!)</span>
+                      <span v-else>До сбора: {{ getHarvestProgress(uPlant)!.remaining }} дн.</span>
+                    </div>
                   </div>
                 </div>
+                <button class="delete-inst-btn" @click.stop="confirmDelete(uPlant.id)" title="Удалить">
+                  <Trash2 :size="16" />
+                </button>
               </div>
-              <button class="delete-inst-btn" @click.stop="confirmDelete(uPlant.id)" title="Удалить">
-                <Trash2 :size="16" />
-              </button>
             </div>
           </div>
         </div>
-      </div>
-    </template>
+      </template>
 
-    <!-- Вкладка Каталог: Список -->
-    <template v-else>
-      <div class="count-label">{{ filteredCatalog.length }} культур</div>
-      <div class="plants-grid">
-        <div
-          v-for="plant in filteredCatalog" :key="plant.id"
-          class="plant-card"
-          @click="router.push(`/plants/${plant.id}`)"
-        >
-          <div class="card-top-row">
-            <div class="emoji-wrapper">
-              <span class="plant-emoji">{{ plant.emoji }}</span>
-            </div>
-            <div class="top-badges">
-              <span v-if="plant.difficulty" class="diff-badge" :class="plant.difficulty">
-                {{ plant.difficulty === 'easy' ? '🟢 Легко' : plant.difficulty === 'medium' ? '🟡 Средне' : '🔴 Сложно' }}
-              </span>
-              <button
-                class="garden-toggle-btn"
-                :class="{ active: userPlantIds.includes(plant.id) }"
-                title="В моём саду"
-                @click="toggleGardenCatalog(plant, $event)"
-              >
-                <BookmarkCheck v-if="userPlantIds.includes(plant.id)" :size="22" />
-                <Bookmark v-else :size="22" />
-              </button>
-            </div>
-          </div>
-          <div class="card-main">
-            <div class="plant-name">{{ plant.name }}</div>
-            <div class="plant-latin" v-if="plant.latin_name">{{ plant.latin_name }}</div>
-            <div class="plant-requirements" v-if="plant.sun || plant.water">
-              <span class="req-pill" v-if="plant.sun" :title="plant.sun">
-                <span class="req-icon">{{ plant.sun.split(' ')[0] }}</span>
-                <span class="req-label">{{ plant.sun.split(' ').slice(1).join(' ') }}</span>
-              </span>
-              <span class="req-pill" v-if="plant.water" :title="plant.water">
-                <span class="req-icon">{{ plant.water.split(' ')[0] }}</span>
-                <span class="req-label">{{ plant.water.split(' ').slice(1).join(' ') }}</span>
-              </span>
-            </div>
-            <p class="plant-desc" v-if="plant.description">{{ plant.description }}</p>
-          </div>
-          <div class="card-footer">
-            <span class="category-pill" :class="plant.category">{{ getCatLabel(plant.category) }}</span>
-            <span class="more-link">Подробнее <ChevronRight :size="16" /></span>
-          </div>
-        </div>
-      </div>
-    </template>
-
-    <!-- Модальное окно редактирования UserPlant -->
-    <div v-if="editingPlant" class="modal-backdrop" @click="closeEditModal">
-      <div class="modal-box" @click.stop>
-        <div class="modal-header">
-          <h3>Настройка грядки</h3>
-          <button class="close-btn" @click="closeEditModal">✕</button>
-        </div>
-        <div class="modal-body">
-          <div class="photo-field">
-            <label>Фотография грядки / растения</label>
-            <div class="photo-preview-box" :style="{ backgroundImage: editingPlant.photo_url ? `url(${editingPlant.photo_url})` : 'none' }">
-              <div v-if="!editingPlant.photo_url" class="no-photo-placeholder">
-                <Camera :size="28" />
-                <span>Фото не добавлено</span>
+      <!-- Вкладка Каталог: Список -->
+      <template v-else>
+        <div class="count-label">{{ filteredCatalog.length }} культур</div>
+        <div class="plants-grid">
+          <div v-for="plant in filteredCatalog" :key="plant.id" class="plant-card"
+            @click="router.push(`/plants/${plant.id}`)">
+            <div class="card-top-row">
+              <div class="emoji-wrapper">
+                <span class="plant-emoji">{{ plant.emoji }}</span>
               </div>
-              <button class="upload-photo-btn" @click="triggerPhotoSelect" :disabled="uploadingPhoto">
-                <UploadCloud :size="18" />
-                <span>{{ uploadingPhoto ? 'Загрузка...' : (editingPlant.photo_url ? 'Заменить фото' : 'Загрузить фото') }}</span>
+              <div class="top-badges">
+                <span v-if="plant.difficulty" class="diff-badge" :class="plant.difficulty">
+                  {{ plant.difficulty === 'easy' ? '🟢 Легко' : plant.difficulty === 'medium' ? '🟡 Средне' : '🔴 Сложно' }}
+                </span>
+                <button class="garden-toggle-btn" :class="{ active: userPlantIds.includes(plant.id) }"
+                  title="В моём саду" @click="toggleGardenCatalog(plant, $event)">
+                  <BookmarkCheck v-if="userPlantIds.includes(plant.id)" :size="22" />
+                  <Bookmark v-else :size="22" />
+                </button>
+              </div>
+            </div>
+            <div class="card-main">
+              <div class="plant-name">{{ plant.name }}</div>
+              <div class="plant-latin" v-if="plant.latin_name">{{ plant.latin_name }}</div>
+              <div class="plant-requirements" v-if="plant.sun || plant.water">
+                <span class="req-pill" v-if="plant.sun" :title="plant.sun">
+                  <span class="req-icon">{{ plant.sun.split(' ')[0] }}</span>
+                  <span class="req-label">{{ plant.sun.split(' ').slice(1).join(' ') }}</span>
+                </span>
+                <span class="req-pill" v-if="plant.water" :title="plant.water">
+                  <span class="req-icon">{{ plant.water.split(' ')[0] }}</span>
+                  <span class="req-label">{{ plant.water.split(' ').slice(1).join(' ') }}</span>
+                </span>
+              </div>
+              <p class="plant-desc" v-if="plant.description">{{ plant.description }}</p>
+            </div>
+            <div class="card-footer">
+              <span class="category-pill" :class="plant.category">{{ getCatLabel(plant.category) }}</span>
+              <span class="more-link">Подробнее
+                <ChevronRight :size="16" />
+              </span>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Модальное окно редактирования UserPlant -->
+      <div v-if="editingPlant" class="modal-backdrop" @click="closeEditModal">
+        <div class="modal-box" @click.stop>
+          <div class="modal-header">
+            <h3>Настройка грядки</h3>
+            <button class="close-btn" @click="closeEditModal">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="photo-field">
+              <label>Фотография грядки / растения</label>
+              <div class="photo-preview-box"
+                :style="{ backgroundImage: editingPlant.photo_url ? `url(${editingPlant.photo_url})` : 'none' }">
+                <div v-if="!editingPlant.photo_url" class="no-photo-placeholder">
+                  <Camera :size="28" />
+                  <span>Фото не добавлено</span>
+                </div>
+                <button class="upload-photo-btn" @click="triggerPhotoSelect" :disabled="uploadingPhoto">
+                  <UploadCloud :size="18" />
+                  <span>{{ uploadingPhoto ? 'Загрузка...' : (editingPlant.photo_url ? 'Заменить фото' : 'Загрузить фото') }}</span>
+                </button>
+              </div>
+              <input type="file" accept="image/*" ref="fileInputRef" style="display:none" @change="onPhotoSelected" />
+            </div>
+
+            <div class="field">
+              <label>Сорт / Название грядки</label>
+              <input v-model="editForm.nickname" class="modal-input" placeholder="Например: Бычье сердце, Черри..." />
+            </div>
+            <div class="field">
+              <label>Где растёт</label>
+              <input v-model="editForm.location_note" class="modal-input" placeholder="Теплица №1, Южная клумба..." />
+            </div>
+            <div class="field">
+              <label>Дата посадки</label>
+              <input type="date" v-model="editForm.planted_at" class="modal-input" />
+            </div>
+            <div class="field">
+              <label>Дней до первого урожая (от посадки)</label>
+              <input type="number" v-model="editForm.days_to_harvest" class="modal-input" placeholder="Например: 90" />
+            </div>
+
+            <div class="modal-extra-actions">
+              <button class="add-inst-btn" @click="addAnotherInstance(editingPlant?.plant_id)" :disabled="savingModal">
+                <Plus :size="16" /> Добавить ещё одну грядку/сорт {{ getPlantObj(editingPlant)?.name.toLowerCase() }}
               </button>
             </div>
-            <input type="file" accept="image/*" ref="fileInputRef" style="display:none" @change="onPhotoSelected" />
-          </div>
 
-          <div class="field">
-            <label>Сорт / Название грядки</label>
-            <input v-model="editForm.nickname" class="modal-input" placeholder="Например: Бычье сердце, Черри..." />
-          </div>
-          <div class="field">
-            <label>Где растёт</label>
-            <input v-model="editForm.location_note" class="modal-input" placeholder="Теплица №1, Южная клумба..." />
-          </div>
-          <div class="field">
-            <label>Дата посадки</label>
-            <input type="date" v-model="editForm.planted_at" class="modal-input" />
-          </div>
-          <div class="field">
-            <label>Дней до первого урожая (от посадки)</label>
-            <input type="number" v-model="editForm.days_to_harvest" class="modal-input" placeholder="Например: 90" />
-          </div>
-
-          <div class="modal-extra-actions">
-            <button class="add-inst-btn" @click="addAnotherInstance(editingPlant?.plant_id)" :disabled="savingModal">
-              <Plus :size="16" /> Добавить ещё одну грядку/сорт {{ getPlantObj(editingPlant)?.name.toLowerCase() }}
-            </button>
-          </div>
-
-          <div class="modal-actions">
-            <button class="delete-btn" @click="confirmDelete(editingPlant.id)" :disabled="savingModal">
-              <Trash2 :size="18" /> Удалить
-            </button>
-            <button class="save-btn" @click="saveEditPlant" :disabled="savingModal">
-              {{ savingModal ? 'Сохранение...' : 'Сохранить' }}
-            </button>
+            <div class="modal-actions">
+              <button class="delete-btn" @click="confirmDelete(editingPlant.id)" :disabled="savingModal">
+                <Trash2 :size="18" /> Удалить
+              </button>
+              <button class="save-btn" @click="saveEditPlant" :disabled="savingModal">
+                {{ savingModal ? 'Сохранение...' : 'Сохранить' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Подтверждение удаления -->
-    <ConfirmDialog
-      v-model="showDeleteConfirm"
-      title="Удаление грядки"
-      message="Вы уверены, что хотите удалить эту грядку/культуру из вашего огорода? Вся связанная с ней история и записи будут удалены."
-      confirmText="Удалить"
-      cancelText="Отмена"
-      :isDanger="true"
-      @confirm="onConfirmDelete"
-    />
+      <!-- Подтверждение удаления -->
+      <ConfirmDialog v-model="showDeleteConfirm" title="Удаление грядки"
+        message="Вы уверены, что хотите удалить эту грядку/культуру из вашего огорода? Вся связанная с ней история и записи будут удалены."
+        confirmText="Удалить" cancelText="Отмена" :isDanger="true" @confirm="onConfirmDelete" />
     </div>
   </FpPullToRefresh>
 </template>
 
 
 <style scoped lang="scss">
-.plants-view { padding: 16px 16px 24px; }
+.plants-view {
+  padding: 16px 16px 24px;
+}
 
 /* ── STICKY HEADER ── */
 .sticky-header-container {
@@ -655,8 +633,16 @@ onUnmounted(() => {
   }
 }
 
-.page-header { margin-bottom: 16px; }
-.header-title { font-size: 24px; font-weight: 700; color: var(--color-text-primary); margin: 0; }
+.page-header {
+  margin-bottom: 16px;
+}
+
+.header-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
 
 .tabs-wrap {
   display: flex;
@@ -666,6 +652,7 @@ onUnmounted(() => {
   padding: 4px;
   margin-bottom: 16px;
 }
+
 .tab-btn {
   flex: 1;
   padding: 10px;
@@ -702,13 +689,30 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
 
-  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--color-text-tertiary); z-index: 2; }
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-tertiary);
+    z-index: 2;
+  }
+
   .search-input {
-    flex: 1; padding: 10px 12px 10px 36px;
-    border: 1px solid var(--color-border); border-radius: var(--radius-md);
-    background: var(--color-surface); font-size: 14px; color: var(--color-text-primary);
-    outline: none; box-sizing: border-box; width: 100%;
-    &:focus { border-color: var(--color-primary); }
+    flex: 1;
+    padding: 10px 12px 10px 36px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    font-size: 14px;
+    color: var(--color-text-primary);
+    outline: none;
+    box-sizing: border-box;
+    width: 100%;
+
+    &:focus {
+      border-color: var(--color-primary);
+    }
   }
 
   .filter-toggle-btn {
@@ -752,7 +756,7 @@ onUnmounted(() => {
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
   }
 }
@@ -796,7 +800,9 @@ onUnmounted(() => {
     padding: 2px 6px;
     border-radius: 4px;
 
-    &:hover { background: color-mix(in srgb, var(--color-error) 10%, transparent); }
+    &:hover {
+      background: color-mix(in srgb, var(--color-error) 10%, transparent);
+    }
   }
 }
 
@@ -837,7 +843,7 @@ onUnmounted(() => {
     &:hover:not(.active) {
       background: var(--color-surface-hover);
       color: var(--color-text-primary);
-      border-color: var(--color-primary-subtle, rgba(45,106,79,0.4));
+      border-color: var(--color-primary-subtle, rgba(45, 106, 79, 0.4));
     }
 
     &.active {
@@ -852,6 +858,7 @@ onUnmounted(() => {
 .filters-slide-leave-active {
   transition: all 0.25s ease-out;
 }
+
 .filters-slide-enter-from,
 .filters-slide-leave-to {
   opacity: 0;
@@ -889,23 +896,59 @@ onUnmounted(() => {
     border-color: var(--color-primary);
   }
 
-  &.left { left: -4px; }
-  &.right { right: -4px; }
+  &.left {
+    left: -4px;
+  }
+
+  &.right {
+    right: -4px;
+  }
 }
 
 .categories-scroll {
-  display: flex; gap: 8px; overflow-x: auto; scroll-behavior: smooth; padding: 4px 0; width: 100%;
-  scrollbar-width: none; &::-webkit-scrollbar { display: none; }
-}
-.cat-btn {
-  flex-shrink: 0; padding: 6px 14px; border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border); background: var(--color-surface);
-  font-size: 13px; color: var(--color-text-secondary); cursor: pointer; transition: all 0.15s;
-  &.active { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); font-weight: 600; }
-  &:hover:not(.active) { border-color: var(--color-primary-subtle, rgba(45,106,79,0.4)); background: var(--color-surface-hover); color: var(--color-text-primary); }
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: 4px 0;
+  width: 100%;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
-.count-label { font-size: 12px; color: var(--color-text-tertiary); margin-bottom: 12px; }
+.cat-btn {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &.active {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    border-color: var(--color-primary);
+    font-weight: 600;
+  }
+
+  &:hover:not(.active) {
+    border-color: var(--color-primary-subtle, rgba(45, 106, 79, 0.4));
+    background: var(--color-surface-hover);
+    color: var(--color-text-primary);
+  }
+}
+
+.count-label {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin-bottom: 12px;
+}
 
 .empty-garden {
   text-align: center;
@@ -915,9 +958,23 @@ onUnmounted(() => {
   border-radius: var(--radius-lg);
   margin-top: 16px;
 
-  .empty-emoji { font-size: 48px; margin-bottom: 12px; }
-  h3 { font-size: 18px; margin: 0 0 8px; color: var(--color-text-primary); }
-  p { font-size: 14px; color: var(--color-text-secondary); margin: 0 0 20px; line-height: 1.5; }
+  .empty-emoji {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+
+  h3 {
+    font-size: 18px;
+    margin: 0 0 8px;
+    color: var(--color-text-primary);
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    margin: 0 0 20px;
+    line-height: 1.5;
+  }
 }
 
 .catalog-btn {
@@ -932,14 +989,29 @@ onUnmounted(() => {
 }
 
 .garden-header-bar {
-  display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
 }
+
 .add-bed-btn {
-  display: flex; align-items: center; gap: 6px; padding: 6px 12px;
-  background: #E8F5EE; color: var(--color-primary);
-  border: 1px solid var(--color-primary); border-radius: var(--radius-pill);
-  font-size: 13px; font-weight: 600; cursor: pointer;
-  &:hover { background: var(--color-primary); color: var(--color-on-primary); }
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #E8F5EE;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+  }
 }
 
 .plants-grid {
@@ -963,7 +1035,7 @@ onUnmounted(() => {
   &:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
-    border-color: var(--color-primary-subtle, rgba(45,106,79,0.3));
+    border-color: var(--color-primary-subtle, rgba(45, 106, 79, 0.3));
   }
 
   &:active {
@@ -1009,9 +1081,23 @@ onUnmounted(() => {
         align-items: center;
         gap: 4px;
 
-        &.easy { background: rgba(34, 197, 94, 0.12); color: #15803d; border: 1px solid rgba(34, 197, 94, 0.2); }
-        &.medium { background: rgba(234, 179, 8, 0.12); color: #a16207; border: 1px solid rgba(234, 179, 8, 0.2); }
-        &.hard { background: rgba(239, 68, 68, 0.12); color: #b91c1c; border: 1px solid rgba(239, 68, 68, 0.2); }
+        &.easy {
+          background: rgba(34, 197, 94, 0.12);
+          color: #15803d;
+          border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        &.medium {
+          background: rgba(234, 179, 8, 0.12);
+          color: #a16207;
+          border: 1px solid rgba(234, 179, 8, 0.2);
+        }
+
+        &.hard {
+          background: rgba(239, 68, 68, 0.12);
+          color: #b91c1c;
+          border: 1px solid rgba(239, 68, 68, 0.2);
+        }
       }
     }
   }
@@ -1034,7 +1120,9 @@ onUnmounted(() => {
       padding: 2px 8px;
       border-radius: var(--radius-sm);
 
-      .req-icon { font-size: 12px; }
+      .req-icon {
+        font-size: 12px;
+      }
     }
   }
 
@@ -1084,11 +1172,30 @@ onUnmounted(() => {
       background: var(--color-surface-hover);
       color: var(--color-text-secondary);
 
-      &.vegetable { background: #E8F5EE; color: #1B4332; }
-      &.berry { background: #FFECE8; color: #7A2010; }
-      &.tree { background: #FFF8EC; color: #7A5010; }
-      &.shrub { background: #E8F4FD; color: #0C447C; }
-      &.herb { background: var(--color-soil-light); color: var(--color-soil); }
+      &.vegetable {
+        background: #E8F5EE;
+        color: #1B4332;
+      }
+
+      &.berry {
+        background: #FFECE8;
+        color: #7A2010;
+      }
+
+      &.tree {
+        background: #FFF8EC;
+        color: #7A5010;
+      }
+
+      &.shrub {
+        background: #E8F4FD;
+        color: #0C447C;
+      }
+
+      &.herb {
+        background: var(--color-soil-light);
+        color: var(--color-soil);
+      }
     }
 
     .more-link {
@@ -1102,28 +1209,67 @@ onUnmounted(() => {
   }
 }
 
-.plant-emoji { font-size: 26px; flex-shrink: 0; }
+.plant-emoji {
+  font-size: 26px;
+  flex-shrink: 0;
+}
+
 .plant-photo-thumb {
-  width: 44px; height: 44px; border-radius: var(--radius-sm);
-  background-size: cover; background-position: center; flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
   border: 1px solid var(--color-border);
 }
 
-.plant-title-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
-.plant-sub { font-size: 13px; color: var(--color-text-tertiary); }
+.plant-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.plant-sub {
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+
 .plant-meta-tags {
-  display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
 }
-.tag-loc, .tag-date {
-  background: var(--color-surface-hover); color: var(--color-text-secondary);
-  padding: 2px 8px; border-radius: 4px; font-weight: 500;
+
+.tag-loc,
+.tag-date {
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
 }
-.tag-empty { color: var(--color-primary); font-style: italic; font-size: 12px; }
+
+.tag-empty {
+  color: var(--color-primary);
+  font-style: italic;
+  font-size: 12px;
+}
 
 .edit-bed-btn {
-  background: none; border: none; color: var(--color-text-tertiary); padding: 8px; cursor: pointer;
+  background: none;
+  border: none;
+  color: var(--color-text-tertiary);
+  padding: 8px;
+  cursor: pointer;
   border-radius: 50%;
-  &:hover { color: var(--color-primary); background: var(--color-surface-hover); }
+
+  &:hover {
+    color: var(--color-primary);
+    background: var(--color-surface-hover);
+  }
 }
 
 .garden-toggle-btn {
@@ -1138,82 +1284,222 @@ onUnmounted(() => {
   justify-content: center;
   transition: all 0.15s;
 
-  &:hover { color: var(--color-primary); background: var(--color-surface-hover); }
-  &.active { color: var(--color-primary); }
+  &:hover {
+    color: var(--color-primary);
+    background: var(--color-surface-hover);
+  }
+
+  &.active {
+    color: var(--color-primary);
+  }
 }
-.plant-arrow { color: var(--color-text-disabled); flex-shrink: 0; }
+
+.plant-arrow {
+  color: var(--color-text-disabled);
+  flex-shrink: 0;
+}
 
 /* Modal */
 .modal-backdrop {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px);
-  display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
 }
+
 .modal-box {
-  background: var(--color-surface); border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg); width: 100%; max-width: 400px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
 }
+
 .modal-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 16px 20px; border-bottom: 1px solid var(--color-border);
-  h3 { margin: 0; font-size: 18px; color: var(--color-text-primary); }
-  .close-btn { background: none; border: none; font-size: 18px; color: var(--color-text-tertiary); cursor: pointer; }
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--color-text-primary);
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+  }
 }
-.modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 
 .photo-field {
-  display: flex; flex-direction: column; gap: 8px;
-  label { font-size: 13px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 2px; }
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: 2px;
+  }
+
   .photo-preview-box {
-    width: 100%; height: 160px; border-radius: var(--radius-md);
-    border: 2px dashed var(--color-primary); background-color: var(--color-background);
-    background-size: cover; background-position: center; display: flex;
-    flex-direction: column; align-items: center; justify-content: center; position: relative;
+    width: 100%;
+    height: 160px;
+    border-radius: var(--radius-md);
+    border: 2px dashed var(--color-primary);
+    background-color: var(--color-background);
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
     overflow: hidden;
   }
+
   .no-photo-placeholder {
-    display: flex; flex-direction: column; align-items: center; gap: 6px;
-    color: var(--color-text-tertiary); font-size: 13px; margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-text-tertiary);
+    font-size: 13px;
+    margin-bottom: 12px;
   }
+
   .upload-photo-btn {
-    background: rgba(45, 106, 79, 0.9); color: white; padding: 8px 16px; border: none;
-    border-radius: 99px; font-size: 13px; font-weight: 600; display: flex;
-    align-items: center; gap: 8px; cursor: pointer; backdrop-filter: blur(4px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: transform 0.15s;
-    &:hover { transform: scale(1.03); background: var(--color-primary); }
-    &:disabled { opacity: 0.7; cursor: not-allowed; }
+    background: rgba(45, 106, 79, 0.9);
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 99px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: transform 0.15s;
+
+    &:hover {
+      transform: scale(1.03);
+      background: var(--color-primary);
+    }
+
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
   }
 }
 
 .field {
-  label { display: block; font-size: 13px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 6px; }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: 6px;
+  }
+
   .modal-input {
-    width: 100%; padding: 10px 12px; border: 1px solid var(--color-border);
-    border-radius: var(--radius-md); background: var(--color-surface); font-size: 14px;
-    color: var(--color-text-primary); outline: none; box-sizing: border-box;
-    &:focus { border-color: var(--color-primary); }
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    font-size: 14px;
+    color: var(--color-text-primary);
+    outline: none;
+    box-sizing: border-box;
+
+    &:focus {
+      border-color: var(--color-primary);
+    }
   }
 }
+
 .modal-extra-actions {
   padding-top: 4px;
 }
+
 .add-inst-btn {
-  width: 100%; padding: 10px; background: var(--color-surface-hover);
-  color: var(--color-primary); border: 1px dashed var(--color-primary);
-  border-radius: var(--radius-md); font-size: 13px; font-weight: 600;
-  display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
-  &:hover { background: #E8F5EE; }
-}
-.modal-actions {
-  display: flex; justify-content: space-between; gap: 12px; padding-top: 8px; border-top: 1px solid var(--color-border);
-  .delete-btn {
-    display: flex; align-items: center; gap: 6px; padding: 10px 16px;
-    background: #FFF0ED; color: var(--color-error); border: none; border-radius: var(--radius-md); font-weight: 600; cursor: pointer;
-    &:hover { background: #FFD8D0; }
+  width: 100%;
+  padding: 10px;
+  background: var(--color-surface-hover);
+  color: var(--color-primary);
+  border: 1px dashed var(--color-primary);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+
+  &:hover {
+    background: #E8F5EE;
   }
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+
+  .delete-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: #FFF0ED;
+    color: var(--color-error);
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+      background: #FFD8D0;
+    }
+  }
+
   .save-btn {
-    flex: 1; padding: 10px 20px; background: var(--color-primary); color: var(--color-on-primary);
-    border: none; border-radius: var(--radius-md); font-weight: 600; cursor: pointer;
+    flex: 1;
+    padding: 10px 20px;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
   }
 }
 
@@ -1235,7 +1521,7 @@ onUnmounted(() => {
 
   &:hover {
     box-shadow: var(--shadow-md);
-    border-color: var(--color-primary-subtle, rgba(45,106,79,0.3));
+    border-color: var(--color-primary-subtle, rgba(45, 106, 79, 0.3));
   }
 }
 
@@ -1249,7 +1535,9 @@ onUnmounted(() => {
   cursor: pointer;
   transition: background 0.15s;
 
-  &:hover { background: var(--color-primary-subtle, rgba(45,106,79,0.1)); }
+  &:hover {
+    background: var(--color-primary-subtle, rgba(45, 106, 79, 0.1));
+  }
 }
 
 .group-title-left {
@@ -1258,8 +1546,17 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-.group-emoji { font-size: 26px; }
-.group-name { margin: 0; font-size: 18px; font-weight: 800; color: var(--color-text-primary); }
+.group-emoji {
+  font-size: 26px;
+}
+
+.group-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
 .instance-count {
   font-size: 12px;
   font-weight: 700;
@@ -1389,7 +1686,7 @@ onUnmounted(() => {
 
   &:hover {
     color: var(--color-error, #E76F51);
-    background: rgba(231,111,81,0.15);
+    background: rgba(231, 111, 81, 0.15);
   }
 }
 
@@ -1400,6 +1697,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 4px;
 }
+
 .harvest-bar-bg {
   width: 100%;
   height: 6px;
@@ -1407,23 +1705,32 @@ onUnmounted(() => {
   border-radius: 3px;
   overflow: hidden;
 }
+
 .harvest-bar-fill {
   height: 100%;
   border-radius: 3px;
   background: var(--color-primary);
   transition: width 0.3s ease;
-  
-  &.warning { background: #f39c12; }
-  &.ready { background: #e74c3c; }
+
+  &.warning {
+    background: #f39c12;
+  }
+
+  &.ready {
+    background: #e74c3c;
+  }
 }
+
 .harvest-info {
   font-size: 11px;
   font-weight: 600;
   color: var(--color-text-secondary);
 }
+
 .harvest-warning {
   color: #d35400;
 }
+
 .harvest-ready {
   color: #c0392b;
   font-weight: 700;
