@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Users, Droplets, MapPin, Sparkles, ChevronRight } from 'lucide-vue-next'
+import { Users, MapPin, Sparkles, ChevronRight } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { SocialService, type SocialActivity } from '../services/SocialService'
 

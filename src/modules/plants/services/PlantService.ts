@@ -332,7 +332,7 @@ export const PlantService = {
         .getPublicUrl(`${user.id}/${f.name}`)
       return {
         url: publicData.publicUrl,
-        createdAt: f.created_at
+        createdAt: f.created_at || new Date().toISOString()
       }
     })
   }
