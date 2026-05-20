@@ -1,5 +1,3 @@
-import { ProductItem } from '@/modules/products'
-
 export type ProductGroup = 
   | 'copper' 
   | 'alkaline' 

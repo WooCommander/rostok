@@ -107,7 +107,7 @@ const groupedGarden = computed(() => {
 })
 
 const editingPlant = ref<UserPlant | null>(null)
-const editForm = ref({ nickname: '', location_note: '', planted_at: '' })
+const editForm = ref({ nickname: '', location_note: '', planted_at: '', days_to_harvest: '' as string | number })
 const savingModal = ref(false)
 const uploadingPhoto = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
@@ -140,7 +140,8 @@ function openEditModal(u: UserPlant, event: Event) {
   editForm.value = {
     nickname: u.nickname || '',
     location_note: u.location_note || '',
-    planted_at: u.planted_at ? u.planted_at.split('T')[0] : ''
+    planted_at: u.planted_at ? u.planted_at.split('T')[0] : '',
+    days_to_harvest: u.days_to_harvest || ''
   }
 }
 
@@ -155,7 +156,8 @@ async function saveEditPlant() {
     const updated = await PlantService.updateUserPlant(editingPlant.value.id, {
       nickname: editForm.value.nickname || null,
       location_note: editForm.value.location_note || null,
-      planted_at: editForm.value.planted_at || null
+      planted_at: editForm.value.planted_at || null,
+      days_to_harvest: editForm.value.days_to_harvest ? Number(editForm.value.days_to_harvest) : null
     })
     const idx = userPlantsList.value.findIndex(u => u.id === updated.id)
     if (idx !== -1) userPlantsList.value[idx] = updated
@@ -249,6 +251,24 @@ async function toggleGardenCatalog(plant: Plant, event: Event) {
 
 function getPlantObj(u: UserPlant) {
   return u.plant || plants.value.find(item => item.id === u.plant_id)
+}
+
+function getHarvestProgress(u: UserPlant) {
+  if (!u.planted_at || !u.days_to_harvest) return null
+  const planted = new Date(u.planted_at)
+  const now = new Date()
+  const diffTime = now.getTime() - planted.getTime()
+  if (diffTime < 0) return null
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  
+  const remaining = Math.max(0, u.days_to_harvest - diffDays)
+  const percent = Math.min(100, Math.round((diffDays / u.days_to_harvest) * 100))
+  
+  let status = 'normal'
+  if (remaining <= 14 && remaining > 0) status = 'warning'
+  if (remaining === 0) status = 'ready'
+
+  return { remaining, percent, status }
 }
 
 function formatDateDisplay(d?: string | null): string {
@@ -468,6 +488,17 @@ onUnmounted(() => {
                   <span v-if="uPlant.planted_at" class="tag-date">📅 {{ formatDateDisplay(uPlant.planted_at) }}</span>
                   <span v-if="!uPlant.location_note && !uPlant.planted_at" class="tag-empty">✏️ Указать сорт/грядку</span>
                 </div>
+                
+                <div v-if="getHarvestProgress(uPlant)" class="harvest-progress-container">
+                  <div class="harvest-bar-bg">
+                    <div class="harvest-bar-fill" :class="getHarvestProgress(uPlant)!.status" :style="{ width: getHarvestProgress(uPlant)!.percent + '%' }"></div>
+                  </div>
+                  <div class="harvest-info">
+                    <span v-if="getHarvestProgress(uPlant)!.status === 'ready'" class="harvest-ready">🍅 Урожай готов!</span>
+                    <span v-else-if="getHarvestProgress(uPlant)!.status === 'warning'" class="harvest-warning">⚠️ {{ getHarvestProgress(uPlant)!.remaining }} дн. (переходите на био!)</span>
+                    <span v-else>До сбора: {{ getHarvestProgress(uPlant)!.remaining }} дн.</span>
+                  </div>
+                </div>
               </div>
               <button class="delete-inst-btn" @click.stop="confirmDelete(uPlant.id)" title="Удалить">
                 <Trash2 :size="16" />
@@ -563,6 +594,10 @@ onUnmounted(() => {
           <div class="field">
             <label>Дата посадки</label>
             <input type="date" v-model="editForm.planted_at" class="modal-input" />
+          </div>
+          <div class="field">
+            <label>Дней до первого урожая (от посадки)</label>
+            <input type="number" v-model="editForm.days_to_harvest" class="modal-input" placeholder="Например: 90" />
           </div>
 
           <div class="modal-extra-actions">
@@ -1356,5 +1391,41 @@ onUnmounted(() => {
     color: var(--color-error, #E76F51);
     background: rgba(231,111,81,0.15);
   }
+}
+
+/* ── HARVEST PROGRESS ── */
+.harvest-progress-container {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.harvest-bar-bg {
+  width: 100%;
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.harvest-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-primary);
+  transition: width 0.3s ease;
+  
+  &.warning { background: #f39c12; }
+  &.ready { background: #e74c3c; }
+}
+.harvest-info {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+.harvest-warning {
+  color: #d35400;
+}
+.harvest-ready {
+  color: #c0392b;
+  font-weight: 700;
 }
 </style>

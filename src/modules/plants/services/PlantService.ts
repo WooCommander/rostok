@@ -29,6 +29,7 @@ export interface UserPlant {
   plant_id: string
   nickname?: string | null
   planted_at?: string | null
+  days_to_harvest?: number | null
   location_note?: string | null
   photo_url?: string | null
   created_at?: string

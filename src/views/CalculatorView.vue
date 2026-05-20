@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { ArrowLeft, Calculator, HelpCircle } from 'lucide-vue-next'
+import { ArrowLeft, Calculator, HelpCircle, FlaskConical, Droplet } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
-import { CalculatorService, type CalculationInput, CalculatorResultCard } from '@/modules/calculator'
+import { CalculatorService, type CalculationInput, CalculatorResultCard, PhCalculatorService, type SoilTexture, type DeoxidizerType } from '@/modules/calculator'
 
 const router = useRouter()
 
-const fertilizers = CalculatorService.getFertilizers()
+const activeTab = ref<'fertilizer' | 'ph'>('fertilizer')
 
+// --- Fertilizer State ---
+const fertilizers = CalculatorService.getFertilizers()
 const calcType = ref<'area' | 'bushes' | 'trees'>('area')
 const amount = ref<number>(10)
 const selectedFertilizerId = ref<string>(fertilizers[0].id)
@@ -15,6 +17,23 @@ const soilType = ref<'loam' | 'sandy' | 'clay'>('loam')
 
 const activeFertilizer = computed(() => {
   return fertilizers.find(f => f.id === selectedFertilizerId.value) || fertilizers[0]
+})
+
+// --- pH State ---
+const phArea = ref<number>(10)
+const currentPh = ref<number>(5.5)
+const targetPh = ref<number>(6.5)
+const phSoilTexture = ref<SoilTexture>('loam')
+const deoxidizerType = ref<DeoxidizerType>('dolomite')
+
+const phResult = computed(() => {
+  return PhCalculatorService.calculate({
+    area: phArea.value,
+    currentPh: currentPh.value,
+    targetPh: targetPh.value,
+    soilTexture: phSoilTexture.value,
+    deoxidizerType: deoxidizerType.value
+  })
 })
 
 const calculationResult = computed(() => {
@@ -35,12 +54,21 @@ const calculationResult = computed(() => {
         <button class="back-btn" @click="router.back()"><ArrowLeft :size="20" /></button>
         <div class="title-badge"><Calculator :size="16" /> Агрокалькулятор</div>
       </div>
-      <h1 class="page-title">Калькулятор подкормок и полива</h1>
-      <p class="page-sub">Точный расчет граммовки удобрений и объема воды по площади или количеству растений</p>
+      <h1 class="page-title">Агрокалькуляторы</h1>
+      <p class="page-sub">Точный расчет подкормок, полива и нормализации кислотности почвы</p>
     </div>
 
-    <div class="calc-body">
-      <!-- Настройки расчета -->
+    <div class="main-tabs">
+      <button class="main-tab-btn" :class="{ active: activeTab === 'fertilizer' }" @click="activeTab = 'fertilizer'">
+        <Droplet :size="18" /> Подкормка и полив
+      </button>
+      <button class="main-tab-btn" :class="{ active: activeTab === 'ph' }" @click="activeTab = 'ph'">
+        <FlaskConical :size="18" /> Раскисление (pH)
+      </button>
+    </div>
+
+    <div class="calc-body" v-if="activeTab === 'fertilizer'">
+      <!-- Настройки расчета подкормок -->
       <div class="calc-form-card">
         <div class="form-section">
           <label class="section-label">1. Выберите удобрение</label>
@@ -145,6 +173,86 @@ const calculationResult = computed(() => {
         />
       </div>
     </div>
+
+    <div class="calc-body" v-if="activeTab === 'ph'">
+      <div class="calc-form-card">
+        <div class="form-section">
+          <label class="section-label">1. Выберите средство-раскислитель</label>
+          <div class="fert-select-grid">
+            <button class="fert-select-btn" :class="{ active: deoxidizerType === 'dolomite' }" @click="deoxidizerType = 'dolomite'">
+              <div class="fert-btn-title">Доломитовая мука</div>
+              <div class="fert-btn-cat organic">Мягкое</div>
+            </button>
+            <button class="fert-select-btn" :class="{ active: deoxidizerType === 'ash' }" @click="deoxidizerType = 'ash'">
+              <div class="fert-btn-title">Древесная зола</div>
+              <div class="fert-btn-cat potassium">Народное</div>
+            </button>
+            <button class="fert-select-btn" :class="{ active: deoxidizerType === 'lime' }" @click="deoxidizerType = 'lime'">
+              <div class="fert-btn-title">Гашеная известь</div>
+              <div class="fert-btn-cat complex">Жесткое</div>
+            </button>
+          </div>
+          <p class="fert-desc-hint" v-if="deoxidizerType === 'dolomite'">Доломитовая мука — самый безопасный вариант. Не обжигает корни и обогащает почву магнием.</p>
+          <p class="fert-desc-hint" v-if="deoxidizerType === 'ash'">Древесная зола — отличное органическое удобрение, но для раскисления её требуется в 1.5-2 раза больше.</p>
+          <p class="fert-desc-hint" v-if="deoxidizerType === 'lime'">Известь-пушонка действует агрессивно и быстро. Вносить только осенью под перекопку!</p>
+        </div>
+
+        <div class="form-section soil-section">
+          <label class="section-label">2. Тип грунта</label>
+          <div class="soil-options">
+            <button class="soil-btn" :class="{ active: phSoilTexture === 'sandy' }" @click="phSoilTexture = 'sandy'">Песчаная (легкая)</button>
+            <button class="soil-btn" :class="{ active: phSoilTexture === 'loam' }" @click="phSoilTexture = 'loam'">Суглинок (средняя)</button>
+            <button class="soil-btn" :class="{ active: phSoilTexture === 'clay' }" @click="phSoilTexture = 'clay'">Глинистая (тяжелая)</button>
+          </div>
+        </div>
+
+        <div class="form-section number-input-section">
+          <label class="section-label">3. Площадь обработки (м²)</label>
+          <div class="num-input-wrap">
+            <button class="step-btn" @click="phArea = Math.max(1, phArea - 1)">-</button>
+            <input type="number" v-model.number="phArea" min="1" class="num-input" />
+            <button class="step-btn" @click="phArea++">+</button>
+          </div>
+        </div>
+
+        <div class="ph-sliders">
+          <div class="form-section">
+            <div class="slider-header">
+              <label class="section-label">4. Текущий уровень pH</label>
+              <span class="ph-value">{{ currentPh.toFixed(1) }}</span>
+            </div>
+            <input type="range" v-model.number="currentPh" min="4.0" max="8.0" step="0.1" class="ph-range current" />
+            <div class="ph-marks"><span>4.0 (Сильно кислая)</span><span>8.0 (Щелочная)</span></div>
+          </div>
+
+          <div class="form-section mt-16">
+            <div class="slider-header">
+              <label class="section-label">5. Целевой уровень pH</label>
+              <span class="ph-value target">{{ targetPh.toFixed(1) }}</span>
+            </div>
+            <input type="range" v-model.number="targetPh" min="5.0" max="7.5" step="0.1" class="ph-range target" />
+            <div class="ph-marks"><span>Обычно 6.5</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-container">
+        <div class="ph-result-card" :class="{ success: phResult.totalAmountKg > 0, info: phResult.totalAmountKg === 0 }">
+          <div class="ph-result-header">
+            <h3>Результат расчета</h3>
+          </div>
+          <div class="ph-result-body">
+            <div v-if="phResult.totalAmountKg > 0" class="ph-big-number">
+              {{ phResult.totalAmountKg }} <span>кг</span>
+            </div>
+            <p class="ph-result-msg">{{ phResult.message }}</p>
+            <div v-if="phResult.totalAmountKg > 0" class="ph-per-meter">
+              Это примерно <b>{{ phResult.amountPerSqMGrams }} г</b> на 1 м².
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -213,10 +321,167 @@ const calculationResult = computed(() => {
 }
 
 /* ── BODY ── */
+.main-tabs {
+  display: flex;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 4px;
+  margin-bottom: 24px;
+}
+
+.main-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover { color: var(--color-text-primary); }
+
+  &.active {
+    background: var(--color-primary);
+    color: white;
+    box-shadow: var(--shadow-sm);
+  }
+}
+
 .calc-body {
   display: flex;
   flex-direction: column;
   gap: 28px;
+  animation: fade-in 0.3s ease;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ph-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: var(--color-background);
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.ph-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.1);
+  padding: 4px 12px;
+  border-radius: 99px;
+
+  &.target {
+    color: #2ecc71;
+    background: rgba(46, 204, 113, 0.1);
+  }
+}
+
+.ph-range {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  outline: none;
+  -webkit-appearance: none;
+  background: var(--color-border);
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  &.current::-webkit-slider-thumb { background: #e74c3c; box-shadow: 0 0 10px rgba(231,76,60,0.5); }
+  &.target::-webkit-slider-thumb { background: #2ecc71; box-shadow: 0 0 10px rgba(46,204,113,0.5); }
+}
+
+.ph-marks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.mt-16 { margin-top: 16px; }
+
+.ph-result-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+
+  &.success {
+    border-color: var(--color-primary);
+    .ph-result-header { background: var(--color-primary); color: white; }
+    .ph-big-number { color: var(--color-primary); }
+  }
+
+  &.info {
+    border-color: #3b82f6;
+    .ph-result-header { background: #3b82f6; color: white; }
+    .ph-big-number { color: #3b82f6; }
+  }
+}
+
+.ph-result-header {
+  padding: 16px 20px;
+  h3 { margin: 0; font-size: 18px; font-weight: 700; }
+}
+
+.ph-result-body {
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.ph-big-number {
+  font-size: 48px;
+  font-weight: 900;
+  margin-bottom: 8px;
+  line-height: 1;
+
+  span { font-size: 24px; font-weight: 700; }
+}
+
+.ph-result-msg {
+  font-size: 16px;
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.ph-per-meter {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  background: var(--color-background);
+  padding: 8px;
+  border-radius: var(--radius-md);
+  display: inline-block;
 }
 
 .calc-form-card {
