@@ -55,4 +55,65 @@ export class TankMixerService {
       message: 'Точных данных о совместимости этих групп нет. Рекомендуется провести тест на совместимость: смешайте препараты в небольшой емкости. Если выпадет осадок, хлопья или раствор разогреется — смешивать нельзя.'
     }
   }
+
+  static checkMultipleCompatibility(products: ProductItem[]): MixCheckResult {
+    if (products.length < 2) {
+      return { result: 'COMPATIBLE', message: 'Недостаточно препаратов для смешивания.' }
+    }
+
+    let hasCaution = false
+    let allMessages = new Set<string>()
+
+    for (let i = 0; i < products.length; i++) {
+      for (let j = i + 1; j < products.length; j++) {
+        const p1 = products[i]
+        const p2 = products[j]
+        
+        if (p1.id === p2.id) {
+          return {
+            result: 'INCOMPATIBLE',
+            message: `Вы выбрали один и тот же препарат дважды: ${p1.name}.`
+          }
+        }
+
+        const res = this.checkCompatibility(p1, p2)
+        if (res.result === 'INCOMPATIBLE') {
+          // If any pair is incompatible, the whole mix is incompatible
+          return {
+            result: 'INCOMPATIBLE',
+            message: `Несовместимая пара (${p1.name} + ${p2.name}): ${res.message}`
+          }
+        } else if (res.result === 'CAUTION') {
+          hasCaution = true
+          allMessages.add(`Внимание (${p1.name} + ${p2.name}): ${res.message}`)
+        } else {
+          // COMPATIBLE - just add info message if it's 3 products
+          if (products.length > 2) {
+             allMessages.add(`Пара ${p1.name} и ${p2.name} смешивается отлично.`)
+          } else {
+             allMessages.add(res.message)
+          }
+        }
+      }
+    }
+
+    if (hasCaution) {
+      return {
+        result: 'CAUTION',
+        message: Array.from(allMessages).join(' ')
+      }
+    }
+
+    if (products.length > 2) {
+      return {
+        result: 'COMPATIBLE',
+        message: 'Все три препарата отлично совместимы в одной баковой смеси! Помните: сначала растворяйте порошки, затем жидкие препараты.'
+      }
+    }
+
+    return {
+      result: 'COMPATIBLE',
+      message: Array.from(allMessages).join(' ')
+    }
+  }
 }

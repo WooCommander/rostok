@@ -10,16 +10,13 @@ const props = defineProps<{
 
 const selectedProduct1 = ref<ProductItem | null>(null)
 const selectedProduct2 = ref<ProductItem | null>(null)
+const selectedProduct3 = ref<ProductItem | null>(null)
 
 const result = computed<MixCheckResult | null>(() => {
-  if (!selectedProduct1.value || !selectedProduct2.value) return null
-  if (selectedProduct1.value.id === selectedProduct2.value.id) {
-    return {
-      result: 'INCOMPATIBLE',
-      message: 'Вы выбрали один и тот же препарат дважды.'
-    }
-  }
-  return TankMixerService.checkCompatibility(selectedProduct1.value, selectedProduct2.value)
+  const selected = [selectedProduct1.value, selectedProduct2.value, selectedProduct3.value].filter(Boolean) as ProductItem[]
+  if (selected.length < 2) return null
+
+  return TankMixerService.checkMultipleCompatibility(selected)
 })
 
 function onSelectProduct1(e: Event) {
@@ -34,9 +31,16 @@ function onSelectProduct2(e: Event) {
   selectedProduct2.value = p
 }
 
+function onSelectProduct3(e: Event) {
+  const target = e.target as HTMLSelectElement
+  const p = props.products.find(x => x.id === target.value) || null
+  selectedProduct3.value = p
+}
+
 function reset() {
   selectedProduct1.value = null
   selectedProduct2.value = null
+  selectedProduct3.value = null
   const selects = document.querySelectorAll('.mixer-select')
   selects.forEach(s => (s as HTMLSelectElement).value = '')
 }
@@ -70,6 +74,18 @@ function reset() {
         <select class="mixer-select" @change="onSelectProduct2">
           <option value="">-- Выберите препарат --</option>
           <option v-for="p in props.products" :key="'2-' + p.id" :value="p.id">
+            {{ p.icon }} {{ p.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="plus-sign">+</div>
+
+      <div class="select-group">
+        <label>Препарат 3 (необязательно)</label>
+        <select class="mixer-select" @change="onSelectProduct3">
+          <option value="">-- Выберите препарат --</option>
+          <option v-for="p in props.products" :key="'3-' + p.id" :value="p.id">
             {{ p.icon }} {{ p.name }}
           </option>
         </select>

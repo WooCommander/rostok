@@ -6,7 +6,7 @@ import { authStore } from '@/modules/auth/store/authStore'
 import { changelog } from '@/data/changelog'
 import {
   Home, Leaf, User, ClipboardList, Menu, X,
-  LogOut, Sun, Moon, Plus, ArrowUp, ShieldAlert, Calculator, Info
+  LogOut, Sun, Moon, Plus, ArrowUp, ShieldAlert, Calculator, Info, Beaker
 } from 'lucide-vue-next'
 import { FpHaptics } from '@/shared/lib/haptics'
 
@@ -240,6 +240,10 @@ const handleLogout = async () => {
             <a class="drawer-link" :class="{ active: currentPath === '/calculator' }"
               @click.prevent="navigate('/calculator')">
               <Calculator :size="20" class="link-icon" /> Агрокалькулятор
+            </a>
+            <a class="drawer-link" :class="{ active: currentPath === '/mixer' }"
+              @click.prevent="navigate('/mixer')">
+              <Beaker :size="20" class="link-icon" /> Баковые смеси
             </a>
           </div>
 

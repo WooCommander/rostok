@@ -70,6 +70,11 @@ const routes = [
         path: '/calculator',
         name: 'Calculator',
         component: () => import('@/views/CalculatorView.vue')
+    },
+    {
+        path: '/mixer',
+        name: 'TankMixer',
+        component: () => import('@/views/TankMixerView.vue')
     }
 ]
 
