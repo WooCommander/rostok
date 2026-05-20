@@ -65,6 +65,24 @@ export const authStore = {
         }
     },
 
+    async loginAnonymously() {
+        isLoading.value = true
+        error.value = null
+        try {
+            const { data, error: authError } = await AuthService.signInAnonymously()
+            if (authError) throw authError
+
+            session.value = data.session
+            user.value = data.user
+            return true
+        } catch (e: any) {
+            error.value = e.message
+            return false
+        } finally {
+            isLoading.value = false
+        }
+    },
+
     async register(email: string, password: string) {
         isLoading.value = true
         error.value = null

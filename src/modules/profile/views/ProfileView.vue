@@ -16,8 +16,12 @@ const router = useRouter()
 const { isDark, toggleTheme } = useTheme()
 
 const user = computed(() => authStore.user.value)
-const avatarLetter = computed(() => user.value?.email?.charAt(0).toUpperCase() || '?')
+const avatarLetter = computed(() => user.value?.is_anonymous ? '👻' : (user.value?.email?.charAt(0).toUpperCase() || '?'))
 const appVersion = changelog[0]?.version || ''
+
+function upgradeAccount() {
+  router.push({ name: 'Login', query: { upgrade: 'true' } })
+}
 
 // Settings
 const region = ref('')
@@ -162,12 +166,16 @@ async function logout() {
   <div class="profile-view">
 
     <!-- User card -->
-    <div class="user-card">
+    <div class="user-card" :class="{ 'demo-card': user?.is_anonymous }">
       <div class="avatar">{{ avatarLetter }}</div>
       <div class="user-info">
-        <div class="user-email">{{ user?.email || 'Гость' }}</div>
+        <div class="user-email">{{ user?.is_anonymous ? 'Демо-режим' : (user?.email || 'Гость') }}</div>
+        <div class="demo-warning" v-if="user?.is_anonymous">
+          Вы не зарегистрированы. 
+          <a href="#" @click.prevent="upgradeAccount">Создать аккаунт</a>, чтобы сохранить грядки.
+        </div>
         
-        <div class="gardener-rank-row">
+        <div class="gardener-rank-row" v-if="!user?.is_anonymous">
           <span class="gardener-rank-badge" :style="{ backgroundColor: gardenerRank.color + '15', color: gardenerRank.color }">
             {{ gardenerRank.emoji }} {{ gardenerRank.rank }}
           </span>
@@ -381,7 +389,7 @@ async function logout() {
     <!-- Logout -->
     <button class="logout-btn" @click="logout">
       <LogOut :size="18" />
-      Выйти
+      {{ user?.is_anonymous ? 'Выйти (данные будут потеряны)' : 'Выйти' }}
     </button>
 
     <!-- Модальное окно просмотра совета -->
@@ -430,6 +438,23 @@ async function logout() {
 .user-info { flex: 1; min-width: 0; }
 .user-email { font-size: 16px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .user-stat { font-size: 13px; opacity: 0.75; }
+
+.demo-card {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+}
+
+.demo-warning {
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 8px;
+  
+  a {
+    color: white;
+    font-weight: 700;
+    text-decoration: underline;
+  }
+}
 
 .section {}
 .section-title {

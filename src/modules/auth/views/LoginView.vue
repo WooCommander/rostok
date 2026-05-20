@@ -26,6 +26,12 @@ watch(() => authStore.isRecoveryFlow.value, (isRecovering) => {
     }
 }, { immediate: true })
 
+watch(() => router.currentRoute.value.query.upgrade, (isUpgrade) => {
+    if (isUpgrade === 'true') {
+        viewMode.value = 'register'
+    }
+}, { immediate: true })
+
 const toggleMode = (mode: ViewMode) => {
     viewMode.value = mode
     error.value = ''
@@ -90,7 +96,7 @@ const handleSubmit = async () => {
         } else {
             error.value = authStore.error.value || t('login.errors.resetFailed')
         }
-    } else if (viewMode.value === 'reset') {
+    } else if (viewMode === 'reset') {
         const success = await authStore.updatePassword(password.value)
         if (success) {
             successMessage.value = t('login.passwordUpdated')
@@ -100,6 +106,18 @@ const handleSubmit = async () => {
         } else {
             error.value = authStore.error.value || t('login.errors.resetFailed')
         }
+    }
+}
+
+const handleAnonymousLogin = async () => {
+    error.value = ''
+    successMessage.value = ''
+    const success = await authStore.loginAnonymously()
+    if (success) {
+        const redirectPath = (router.currentRoute.value.query.redirect as string) || '/'
+        router.push(redirectPath)
+    } else {
+        handleError(authStore.error.value || 'Ошибка входа в демо-режим')
     }
 }
 
@@ -163,6 +181,15 @@ const handleError = (errorMessage: string) => {
                         <template v-else-if="viewMode === 'forgot'">{{ t('login.sendResetLink') }}</template>
                         <template v-else-if="viewMode === 'reset'">{{ t('login.updatePassword') }}</template>
                     </FpButton>
+
+                    <template v-if="viewMode === 'login'">
+                        <div class="demo-divider">
+                            <span>или</span>
+                        </div>
+                        <FpButton variant="secondary" :loading="authStore.isLoading.value" size="full" @click="handleAnonymousLogin">
+                            Попробовать без регистрации (Демо)
+                        </FpButton>
+                    </template>
                 </div>
 
                 <div class="secondary-actions">
@@ -272,6 +299,25 @@ const handleError = (errorMessage: string) => {
     border-radius: var(--radius-sm);
     font-size: var(--text-caption);
     text-align: center;
+}
+
+.demo-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: var(--spacing-sm) 0;
+    
+    &::before, &::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid var(--color-border);
+    }
+    
+    span {
+        padding: 0 10px;
+        color: var(--color-text-tertiary);
+        font-size: var(--text-caption);
+    }
 }
 
 /* Normalize browser autofill colors to match design system */

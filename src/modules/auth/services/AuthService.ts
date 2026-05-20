@@ -27,7 +27,18 @@ class AuthService {
         })
     }
 
+    async signInAnonymously() {
+        return await supabase.auth.signInAnonymously()
+    }
+
     async signUp(email: string, password: string) {
+        // If the user is currently anonymous, we should UPGRADE their account
+        // instead of creating a brand new one so they don't lose their data.
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user && user.is_anonymous) {
+            return await supabase.auth.updateUser({ email, password })
+        }
+
         return await supabase.auth.signUp({
             email,
             password
