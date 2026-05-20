@@ -91,12 +91,16 @@ export const authStore = {
             if (authError) throw authError
 
             // If email confirmation is off, we get session. If on, maybe null session.
-            if (data.session) {
-                session.value = data.session
+            const hasSession = 'session' in data && data.session
+
+            if (hasSession) {
+                session.value = (data as any).session
                 user.value = data.user
                 return { success: true }
-            } else if (data.user && !data.session) {
-                return { success: true, message: 'Check email for confirmation' }
+            } else if (data.user && !hasSession) {
+                // If it's an upgrade, the session doesn't change, we just get a user object
+                user.value = data.user
+                return { success: true, message: 'Check email for confirmation or account upgraded' }
             }
             return { success: false }
         } catch (e: any) {

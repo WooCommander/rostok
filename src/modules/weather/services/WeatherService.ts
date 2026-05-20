@@ -10,6 +10,8 @@ export interface WeatherData {
   city: string
   lat: number
   lon: number
+  humidity?: number
+  windSpeed?: number
 }
 
 export interface DailyForecast {
@@ -43,7 +45,7 @@ export const WeatherService = {
   },
 
   async getWeather(lat: number, lon: number): Promise<WeatherData> {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&timezone=auto`
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,relativehumidity_2m,windspeed_10m&timezone=auto`
     const res = await fetch(url)
     if (!res.ok) throw new Error('Ошибка погодного API')
     const json = await res.json()
@@ -54,7 +56,9 @@ export const WeatherService = {
       condition: WeatherService.codeToCondition(code),
       city: await WeatherService.getCityName(lat, lon),
       lat,
-      lon
+      lon,
+      humidity: json.current.relativehumidity_2m,
+      windSpeed: json.current.windspeed_10m
     }
   },
 

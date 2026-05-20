@@ -96,7 +96,7 @@ const handleSubmit = async () => {
         } else {
             error.value = authStore.error.value || t('login.errors.resetFailed')
         }
-    } else if (viewMode === 'reset') {
+    } else if (viewMode.value === 'reset') {
         const success = await authStore.updatePassword(password.value)
         if (success) {
             successMessage.value = t('login.passwordUpdated')

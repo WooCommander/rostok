@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { Sun, Droplets, ChevronRight, RefreshCw, Calculator, ShieldAlert, Sparkles } from 'lucide-vue-next'
+import { Sun, Droplets, ChevronRight, RefreshCw, Calculator, ShieldAlert, Sparkles, MapPin, Wind, CloudRain, Cloud, Snowflake, CloudLightning } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
-import { WeatherService, type WeatherData } from '@/modules/weather/services/WeatherService'
+import { WeatherService, type WeatherData, type DailyForecast } from '@/modules/weather/services/WeatherService'
 import { PlantService, type PlantCare, type Plant } from '@/modules/plants/services/PlantService'
 import { useReminderState, ReminderNotificationCard, type EnrichedReminder } from '@/modules/reminders'
 import { useTipsState, TipOfTheDayModal } from '@/modules/tips'
@@ -12,6 +12,7 @@ import FpPullToRefresh from '@/design-system/components/FpPullToRefresh.vue'
 const router = useRouter()
 
 const weather = ref<WeatherData | null>(null)
+const forecast = ref<DailyForecast[]>([])
 const weatherLoading = ref(true)
 const weatherError = ref('')
 
@@ -39,7 +40,9 @@ async function loadWeather() {
   weatherLoading.value = true
   weatherError.value = ''
   try {
-    weather.value = await WeatherService.getWithCache()
+    const data = await WeatherService.getWithCache()
+    weather.value = data
+    forecast.value = await WeatherService.getWeeklyForecast(data.lat, data.lon)
     await loadRecommendations()
   } catch (e: unknown) {
     weatherError.value = e instanceof Error ? e.message : 'Не удалось загрузить погоду'
@@ -107,6 +110,22 @@ async function onRefresh(done: () => void) {
   }
 }
 
+function getShortDayName(dateStr: string) {
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('ru-RU', { weekday: 'short' })
+}
+
+function getWeatherIcon(code: number) {
+  if (code === 0) return Sun
+  if (code <= 3) return Cloud
+  if (code <= 49) return Cloud
+  if (code <= 69) return CloudRain
+  if (code <= 79) return Snowflake
+  if (code <= 82) return CloudRain
+  if (code <= 99) return CloudLightning
+  return Sun
+}
+
 // Викторина импортирована из модуля quiz
 
 onMounted(() => {
@@ -138,17 +157,36 @@ onMounted(() => {
       <span>{{ weatherError }}</span>
       <button class="retry-btn" @click="loadWeather"><RefreshCw :size="14" /> Повтор</button>
     </div>
-    <div v-else-if="weather" class="weather-card">
-      <div class="weather-left">
-        <Sun class="weather-icon" :size="28" />
-        <div>
-          <div class="weather-temp">{{ weather.temp }}°C · {{ weather.city }}</div>
-          <div class="weather-condition">{{ weather.condition }}</div>
+    <div v-else-if="weather" class="weather-widget">
+      <div class="weather-main-row">
+        <div class="weather-left">
+          <component :is="getWeatherIcon(forecast[0]?.weatherCode || 0)" class="weather-main-icon" :size="36" />
+          <div class="weather-main-info">
+            <div class="weather-temp-large">{{ weather.temp }}°C</div>
+            <div class="weather-condition-text">{{ weather.condition }} · г. {{ weather.city }}</div>
+          </div>
+        </div>
+        <button class="weather-gps-btn" @click="loadWeather" title="Обновить по GPS">
+          <MapPin :size="16" />
+        </button>
+      </div>
+
+      <div class="weather-details-row">
+        <div class="weather-detail-item">
+          <Droplets :size="14" /> {{ weather.humidity || 0 }}%
+        </div>
+        <div class="weather-detail-item">
+          <Wind :size="14" /> {{ weather.windSpeed || 0 }} км/ч
         </div>
       </div>
-      <button class="weather-change" @click="router.push('/profile')">
-        Изменить <ChevronRight :size="14" />
-      </button>
+
+      <div class="weather-forecast-row" v-if="forecast.length > 0">
+        <div v-for="day in forecast.slice(1, 5)" :key="day.date" class="forecast-item">
+          <div class="forecast-day">{{ getShortDayName(day.date) }}</div>
+          <component :is="getWeatherIcon(day.weatherCode)" class="forecast-icon" :size="18" />
+          <div class="forecast-temp">{{ day.tempMax }}°</div>
+        </div>
+      </div>
     </div>
 
     <!-- Active Reminders -->
@@ -298,27 +336,108 @@ onMounted(() => {
 .header-meta { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 4px; text-transform: capitalize; }
 .header-title { font-size: 24px; font-weight: 700; color: var(--color-text-primary); margin: 0; }
 
-.weather-card {
-  background: var(--color-primary);
-  border-radius: var(--radius-lg);
-  padding: 14px 16px;
+.weather-widget {
+  background: linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 70%, #1e3a8a));
+  border-radius: var(--radius-xl);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  color: white;
+  box-shadow: 0 8px 24px rgba(45, 106, 79, 0.2);
+}
+
+.weather-main-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.weather-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.weather-main-icon {
+  color: #fbbf24;
+}
+
+.weather-temp-large {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.weather-condition-text {
+  font-size: 13px;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+.weather-gps-btn {
+  background: rgba(255,255,255,0.15);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: rgba(255,255,255,0.25);
+  }
+}
+
+.weather-details-row {
+  display: flex;
+  gap: 16px;
   margin-bottom: 16px;
-  color: var(--color-on-primary);
-  min-height: 64px;
-  &.skeleton { background: var(--color-surface); border: 1px solid var(--color-border); }
-  &.error-card { background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text-secondary); font-size: 13px; gap: 12px; }
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.9;
 }
-.weather-left { display: flex; align-items: center; gap: 12px; }
-.weather-temp { font-size: 16px; font-weight: 700; }
-.weather-condition { font-size: 12px; opacity: 0.75; margin-top: 2px; }
-.weather-change {
-  background: rgba(255,255,255,0.2); border: none; border-radius: var(--radius-sm);
-  color: white; font-size: 12px; padding: 6px 10px; cursor: pointer;
-  display: flex; align-items: center; gap: 2px;
+
+.weather-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
+
+.weather-forecast-row {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255,255,255,0.15);
+  padding-top: 12px;
+}
+
+.forecast-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.forecast-day {
+  font-size: 11px;
+  text-transform: capitalize;
+  opacity: 0.8;
+  font-weight: 600;
+}
+
+.forecast-icon {
+  color: rgba(255,255,255,0.9);
+}
+
+.forecast-temp {
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .retry-btn {
   display: flex; align-items: center; gap: 4px; padding: 6px 10px;
   background: var(--color-surface-hover); border: 1px solid var(--color-border);
