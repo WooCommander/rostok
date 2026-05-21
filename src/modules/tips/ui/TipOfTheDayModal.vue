@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Bookmark, BookmarkCheck, Sparkles, Share2, RefreshCw, Check, X, CheckCircle2 } from 'lucide-vue-next'
+import { Bookmark, BookmarkCheck, Sparkles, Share2, RefreshCw, Check, CheckCircle2 } from 'lucide-vue-next'
 import type { TipUiModel } from '../adapters/TipsAdapter'
 import { useTipsState } from '../state/useTipsState'
-import { useSwipeToDismiss } from '@/shared/lib'
+import { FpBottomSheetModal } from '@/shared/ui'
+import FpButton from '@/design-system/components/FpButton.vue'
 
 interface Props {
   tip: TipUiModel
@@ -18,14 +19,6 @@ const emit = defineEmits<{
 
 const copied = ref(false)
 const { isSaved, toggleSaveTip } = useTipsState()
-
-const modalContainer = ref<HTMLElement | null>(null)
-
-useSwipeToDismiss(modalContainer, {
-  onDismiss: () => {
-    emit('update:modelValue', false)
-  }
-})
 
 async function shareTip() {
   const bulletsText = props.tip.bullets?.map(b => `• ${b}`).join('\n') || ''
@@ -46,160 +39,76 @@ async function shareTip() {
     } catch {}
   }
 }
-
-function close() {
-  emit('update:modelValue', false)
-}
 </script>
 
 <template>
-  <Transition name="modal-fade">
-    <div v-if="props.modelValue" class="modal-backdrop" @click.self="close">
-      <div ref="modalContainer" class="modal-container">
-        <!-- Декоративная полоса сверху -->
-        <div class="modal-glow-bar"></div>
-
-        <!-- Кнопка закрытия в углу -->
-        <button class="close-icon-btn" @click="close" title="Закрыть">
-          <X :size="20" />
+  <FpBottomSheetModal
+    :model-value="props.modelValue"
+    @update:model-value="val => emit('update:modelValue', val)"
+    with-glow
+  >
+    <template #header>
+      <div class="header-badge">
+        <Sparkles :size="14" class="sparkle-icon" />
+        <span>{{ props.tip.categoryBadge }}</span>
+      </div>
+      <div class="header-right">
+        <span class="header-author">{{ props.tip.author }}</span>
+        <button
+          class="bookmark-btn"
+          :class="{ saved: isSaved(props.tip.id) }"
+          @click="toggleSaveTip(props.tip.id)"
+          :title="isSaved(props.tip.id) ? 'Убрать из сохранённых' : 'Сохранить совет'"
+        >
+          <BookmarkCheck v-if="isSaved(props.tip.id)" :size="20" />
+          <Bookmark v-else :size="20" />
         </button>
+      </div>
+    </template>
 
-        <!-- Шапка -->
-        <div class="modal-header">
-          <div class="header-badge">
-            <Sparkles :size="14" class="sparkle-icon" />
-            <span>{{ props.tip.categoryBadge }}</span>
-          </div>
-          <div class="header-right">
-            <span class="header-author">{{ props.tip.author }}</span>
-            <button
-              class="bookmark-btn"
-              :class="{ saved: isSaved(props.tip.id) }"
-              @click="toggleSaveTip(props.tip.id)"
-              :title="isSaved(props.tip.id) ? 'Убрать из сохранённых' : 'Сохранить совет'"
-            >
-              <BookmarkCheck v-if="isSaved(props.tip.id)" :size="20" />
-              <Bookmark v-else :size="20" />
-            </button>
-          </div>
-        </div>
+    <div class="modal-body-content">
+      <div class="emoji-wrapper">
+        <span class="big-emoji">{{ props.tip.emoji }}</span>
+      </div>
 
-        <!-- Контент -->
-        <div class="modal-body">
-          <div class="emoji-wrapper">
-            <span class="big-emoji">{{ props.tip.emoji }}</span>
-          </div>
+      <h2 class="tip-title">{{ props.tip.title }}</h2>
+      <p class="tip-content">{{ props.tip.content }}</p>
 
-          <h2 class="tip-title">{{ props.tip.title }}</h2>
-          <p class="tip-content">{{ props.tip.content }}</p>
-
-          <!-- Буллеты / детали -->
-          <div v-if="props.tip.bullets && props.tip.bullets.length > 0" class="bullets-box">
-            <div v-for="bullet in props.tip.bullets" :key="bullet" class="bullet-item">
-              <CheckCircle2 :size="18" class="bullet-icon" />
-              <span class="bullet-text">{{ bullet }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Действия -->
-        <div class="modal-footer">
-          <div class="secondary-actions">
-            <button class="action-btn" title="Поделиться советом" @click="shareTip">
-              <Share2 :size="18" />
-              <span>Поделиться</span>
-            </button>
-            <button class="action-btn" title="Следующий совет" @click="emit('next')">
-              <RefreshCw :size="18" />
-              <span>Другой совет</span>
-            </button>
-          </div>
-
-          <button class="primary-close-btn" @click="close">
-            Понятно, спасибо!
-          </button>
-        </div>
-
-        <!-- Уведомление о копировании -->
-        <div v-if="copied" class="copied-toast">
-          <Check :size="16" />
-          <span>Скопировано в буфер</span>
+      <!-- Буллеты / детали -->
+      <div v-if="props.tip.bullets && props.tip.bullets.length > 0" class="bullets-box">
+        <div v-for="bullet in props.tip.bullets" :key="bullet" class="bullet-item">
+          <CheckCircle2 :size="18" class="bullet-icon" />
+          <span class="bullet-text">{{ bullet }}</span>
         </div>
       </div>
     </div>
-  </Transition>
+
+    <template #footer>
+      <div class="secondary-actions">
+        <FpButton variant="secondary" title="Поделиться советом" @click="shareTip">
+          <Share2 :size="18" />
+          <span>Поделиться</span>
+        </FpButton>
+        <FpButton variant="secondary" title="Следующий совет" @click="emit('next')">
+          <RefreshCw :size="18" />
+          <span>Другой совет</span>
+        </FpButton>
+      </div>
+
+      <FpButton variant="primary" size="full" @click="emit('update:modelValue', false)">
+        Понятно, спасибо!
+      </FpButton>
+    </template>
+
+    <!-- Уведомление о копировании -->
+    <div v-if="copied" class="copied-toast">
+      <Check :size="16" />
+      <span>Скопировано в буфер</span>
+    </div>
+  </FpBottomSheetModal>
 </template>
 
 <style scoped lang="scss">
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.modal-container {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-2xl, 24px);
-  width: 100%;
-  max-width: 520px;
-  max-height: 85vh;
-  max-height: 85dvh;
-  position: relative;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-glow-bar {
-  height: 6px;
-  width: 100%;
-  background: linear-gradient(90deg, var(--color-primary), #F4A261, #E76F51);
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
-  flex-shrink: 0;
-}
-
-.close-icon-btn {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--color-surface-hover);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-secondary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s;
-  z-index: 10;
-
-  &:hover {
-    background: var(--color-primary);
-    color: white;
-    border-color: var(--color-primary);
-    transform: rotate(90deg);
-  }
-}
-
-.modal-header {
-  padding: 24px 24px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-right: 60px; /* Чтобы не наезжать на крестик */
-  flex-shrink: 0;
-}
-
 .header-badge {
   display: inline-flex;
   align-items: center;
@@ -248,14 +157,11 @@ function close() {
   }
 }
 
-.modal-body {
-  padding: 12px 24px 24px;
+.modal-body-content {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  overflow-y: auto;
-  flex: 1;
 }
 
 .emoji-wrapper {
@@ -323,69 +229,10 @@ function close() {
   line-height: 1.5;
 }
 
-.modal-footer {
-  padding: 20px 24px 24px;
-  background: var(--color-surface-hover);
-  border-top: 1px solid var(--color-border);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  border-bottom-left-radius: 24px;
-  border-bottom-right-radius: 24px;
-  flex-shrink: 0;
-}
-
 .secondary-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  padding: 12px;
-  border-radius: var(--radius-lg);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  cursor: pointer;
-  transition: all 0.15s;
-
-  &:hover {
-    background: var(--color-primary);
-    color: white;
-    border-color: var(--color-primary);
-    transform: translateY(-2px);
-  }
-}
-
-.primary-close-btn {
-  width: 100%;
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  padding: 16px;
-  border-radius: var(--radius-lg);
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s;
-  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);
-
-  &:hover {
-    filter: brightness(1.1);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(45, 106, 79, 0.4);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
 }
 
 .copied-toast {
@@ -410,24 +257,5 @@ function close() {
 @keyframes toastAnim {
   0% { opacity: 0; transform: translate(-50%, -10px); }
   100% { opacity: 1; transform: translate(-50%, 0); }
-}
-
-/* Анимации модалки */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.3s ease;
-
-  .modal-container {
-    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-}
-
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-
-  .modal-container {
-    transform: scale(0.92) translateY(20px);
-  }
 }
 </style>

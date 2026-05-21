@@ -6,6 +6,7 @@ import FpNumberInput from '@/design-system/components/FpNumberInput.vue'
 import FpCombobox, { type ComboboxItem } from '@/design-system/components/FpCombobox.vue'
 import FpCard from '@/design-system/components/FpCard.vue'
 import FpConfirmationModal from '@/design-system/components/FpConfirmationModal.vue'
+import { FpBottomSheetModal } from '@/shared/ui'
 
 // Button demo
 const btnLoading = ref(false)
@@ -35,8 +36,12 @@ const handleCreate = (val: string) => {
 }
 
 // ConfirmationModal demo
+// ConfirmationModal demo
 const modalVisible = ref(false)
 const modalDangerVisible = ref(false)
+
+// BottomSheetModal demo
+const bottomSheetVisible = ref(false)
 
 </script>
 
@@ -140,6 +145,29 @@ const modalDangerVisible = ref(false)
             <FpConfirmationModal v-model:visible="modalDangerVisible" title="Удалить запись?"
                 message="Это действие необратимо. Данные будут удалены навсегда." confirm-text="Удалить"
                 variant="danger" />
+        </section>
+
+        <section class="ds-section">
+            <h2>BottomSheet Modal (Swipe to dismiss)</h2>
+            <div class="ds-grid">
+                <FpCard>
+                    <div class="row">
+                        <FpButton variant="primary" @click="bottomSheetVisible = true">Открыть BottomSheet</FpButton>
+                    </div>
+                </FpCard>
+            </div>
+
+            <FpBottomSheetModal v-model="bottomSheetVisible" with-glow>
+                <template #header>
+                    <div style="font-weight: 700; font-size: 18px;">Шапка модалки</div>
+                </template>
+                <div style="padding: 24px; text-align: center;">
+                    Попробуй потянуть меня вниз, чтобы закрыть! (Свайп работает только если контент не скроллится вверх)
+                </div>
+                <template #footer>
+                    <FpButton size="full" @click="bottomSheetVisible = false">Отлично, понятно!</FpButton>
+                </template>
+            </FpBottomSheetModal>
         </section>
 
         <section class="ds-section">
