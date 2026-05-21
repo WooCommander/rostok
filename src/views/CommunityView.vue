@@ -29,8 +29,27 @@ async function onRefresh(done: () => void) {
   done()
 }
 
-function likeActivity(act: SocialActivity) {
-  act.likes++
+async function likeActivity(act: SocialActivity) {
+  // Optmistic UI update
+  const originalLikes = act.likes
+  const wasLiked = act.isLikedByMe
+  
+  if (act.isLikedByMe) {
+    act.likes--
+    act.isLikedByMe = false
+  } else {
+    act.likes++
+    act.isLikedByMe = true
+  }
+
+  try {
+    const isNowLiked = await SocialService.toggleLike(act.id)
+    act.isLikedByMe = isNowLiked
+  } catch (e) {
+    // Revert on error
+    act.likes = originalLikes
+    act.isLikedByMe = wasLiked
+  }
 }
 </script>
 
@@ -67,9 +86,9 @@ function likeActivity(act: SocialActivity) {
             Только что {{ act.action }} <strong>{{ act.emoji }} {{ act.plant }}</strong>
           </div>
           <div class="social-footer">
-            <button class="like-btn" @click="likeActivity(act)">
-              <Sparkles :size="14" />
-              <span>Полезно ({{ act.likes }})</span>
+            <button class="like-btn" :class="{ 'liked': act.isLikedByMe }" @click="likeActivity(act)">
+              <Sparkles :size="14" :fill="act.isLikedByMe ? 'currentColor' : 'none'" />
+              <span>{{ act.isLikedByMe ? 'Вы оценили' : 'Полезно' }} ({{ act.likes }})</span>
             </button>
           </div>
         </div>
@@ -242,6 +261,10 @@ function likeActivity(act: SocialActivity) {
   }
   &:active {
     transform: scale(0.95);
+  }
+  
+  &.liked {
+    background: rgba(45, 106, 79, 0.15);
   }
 }
 

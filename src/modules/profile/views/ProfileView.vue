@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { LogOut, MapPin, Thermometer, ChevronRight, Sun, Moon, FileText, RefreshCw, Bookmark, Sprout, ShieldAlert, BarChart3, Database, Users } from 'lucide-vue-next'
+import { LogOut, MapPin, Thermometer, ChevronRight, Sun, Moon, FileText, RefreshCw, Bookmark, Sprout, ShieldAlert, BarChart3, Database, Users, Lock, Unlock, Crown } from 'lucide-vue-next'
 import { authStore } from '@/modules/auth/store/authStore'
 import { useTheme } from '@/composables/useTheme'
 import { supabase } from '@/api/supabase'
@@ -28,6 +28,7 @@ const region = ref('')
 const tempSource = ref<'auto' | 'manual'>('auto')
 const manualTemp = ref<number | null>(null)
 const communityVisible = ref(false)
+const isPremium = ref(false)
 const saving = ref(false)
 const saved = ref(false)
 const gpsLoading = ref(false)
@@ -72,6 +73,7 @@ async function loadSettings() {
     tempSource.value = data.temp_source || 'auto'
     manualTemp.value = data.manual_temp ?? null
     communityVisible.value = data.community_visible ?? false
+    isPremium.value = data.is_premium ?? false
   }
 }
 
@@ -151,12 +153,22 @@ async function saveSettings() {
     region: region.value,
     temp_source: tempSource.value,
     manual_temp: tempSource.value === 'manual' ? manualTemp.value : null,
-    community_visible: communityVisible.value
+    community_visible: communityVisible.value,
+    is_premium: isPremium.value
   }
   await supabase.from('user_settings').upsert(payload)
   saving.value = false
   saved.value = true
   setTimeout(() => saved.value = false, 2000)
+}
+
+async function togglePremiumDemo() {
+  isPremium.value = !isPremium.value
+  // Если премиум выключен, принудительно делаем видимым в сообществе
+  if (!isPremium.value) {
+    communityVisible.value = true
+  }
+  await saveSettings()
 }
 
 async function logout() {
@@ -361,17 +373,31 @@ async function logout() {
       <div class="settings-card">
         <div class="setting-row">
           <div class="setting-label">
+            <Lock v-if="!isPremium" :size="14" style="color: var(--color-error);" />
             Показывать мою активность
           </div>
           <div class="setting-control">
-            <label class="toggle-switch">
-              <input type="checkbox" v-model="communityVisible" @change="saveSettings" />
+            <label class="toggle-switch" :class="{ disabled: !isPremium }">
+              <input type="checkbox" v-model="communityVisible" @change="saveSettings" :disabled="!isPremium" />
               <span class="toggle-slider"></span>
             </label>
           </div>
         </div>
         <div class="community-hint">
-          Когда включено, ваши записи журнала (полив, обработки и т.д.) будут видны другим огородникам в ленте «Сообщество». Ваш email и личные данные НЕ показываются.
+          <span v-if="!isPremium" style="color: var(--color-error); font-weight: 600;">
+            В базовой версии все ваши действия попадают в общую ленту. Активируйте Premium, чтобы сделать профиль приватным.
+          </span>
+          <span v-else>
+            Когда включено, ваши записи журнала будут видны другим огородникам в ленте «Сообщество».
+          </span>
+        </div>
+        
+        <!-- Кнопка-заглушка для тестирования Премиум -->
+        <div class="setting-row clickable" @click="togglePremiumDemo">
+          <div class="setting-label">
+            <Crown :size="16" :style="{ color: isPremium ? 'var(--color-primary)' : 'var(--color-text-secondary)' }" />
+            {{ isPremium ? 'Premium активен (Выключить)' : 'Активировать Premium (Демо)' }}
+          </div>
         </div>
       </div>
     </div>
@@ -843,6 +869,11 @@ async function logout() {
   display: inline-block;
   width: 44px;
   height: 24px;
+  
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
   input {
     opacity: 0;

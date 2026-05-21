@@ -12,6 +12,7 @@ export interface SocialActivity {
   likes: number
   location: string
   isReal?: boolean
+  isLikedByMe?: boolean
 }
 
 interface CommunityRow {
@@ -25,6 +26,7 @@ interface CommunityRow {
   location_label: string | null
   likes_count: number
   created_at: string
+  is_liked_by_me?: boolean
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -72,7 +74,8 @@ function mapRowToActivity(row: CommunityRow): SocialActivity {
     timeAgo: formatTimeAgo(row.created_at),
     likes: row.likes_count,
     location: row.city ? `г. ${row.city}` : (row.location_label || 'В вашем регионе'),
-    isReal: true
+    isReal: true,
+    isLikedByMe: row.is_liked_by_me || false
   }
 }
 
@@ -111,12 +114,14 @@ async function generateMockFeed(count: number): Promise<SocialActivity[]> {
 export const SocialService = {
   /**
    * Получить ленту сообщества.
-   * Сначала пробуем реальные данные из БД, если их мало — дополняем mock.
+   * Отключена генерация мок-данных для полноценного тестирования.
    */
   async getFeed(count: number = 10): Promise<SocialActivity[]> {
     let realActivities: SocialActivity[] = []
     
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
       const { data, error } = await supabase
         .from('community_activities')
         .select('*')
@@ -124,23 +129,30 @@ export const SocialService = {
         .limit(count)
       
       if (!error && data && data.length > 0) {
-        realActivities = (data as CommunityRow[]).map(mapRowToActivity)
+        // Проверяем лайки текущего пользователя
+        if (user) {
+          const activityIds = data.map(d => d.id)
+          const { data: likesData } = await supabase
+            .from('community_likes')
+            .select('activity_id')
+            .eq('user_id', user.id)
+            .in('activity_id', activityIds)
+            
+          const likedSet = new Set(likesData?.map(l => l.activity_id) || [])
+          
+          realActivities = (data as CommunityRow[]).map(row => {
+            row.is_liked_by_me = likedSet.has(row.id)
+            return mapRowToActivity(row)
+          })
+        } else {
+          realActivities = (data as CommunityRow[]).map(mapRowToActivity)
+        }
       }
     } catch (_) {
-      // Таблица ещё не создана — продолжаем с mock
+      console.warn('Failed to fetch real feed')
     }
     
-    // Если реальных данных достаточно — возвращаем только их
-    if (realActivities.length >= count) {
-      return realActivities
-    }
-    
-    // Дополняем mock-данными до нужного количества
-    const mockCount = count - realActivities.length
-    const mockActivities = await generateMockFeed(mockCount)
-    
-    // Реальные записи всегда сверху
-    return [...realActivities, ...mockActivities]
+    return realActivities
   },
 
   /**
@@ -157,14 +169,22 @@ export const SocialService = {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       
-      // Проверяем, включил ли пользователь видимость в сообществе
+      // Проверяем, включил ли пользователь видимость в сообществе и есть ли у него подписка
       const { data: settings } = await supabase
         .from('user_settings')
-        .select('community_visible, region')
+        .select('community_visible, region, is_premium')
         .eq('user_id', user.id)
         .single()
       
-      if (!settings?.community_visible) return
+      // БАЗОВАЯ ВЕРСИЯ: пользователи не могут скрывать свою активность.
+      // Если у пользователя есть премиум, он может скрыть активность (community_visible = false)
+      const isPremium = settings?.is_premium || false
+      const wantsToHide = settings?.community_visible === false
+      
+      // Если хочет скрыть, но нет премиума -> все равно публикуем
+      if (wantsToHide && isPremium) {
+        return // Только премиум пользователи могут отменить публикацию
+      }
       
       // Получаем город из настроек или из погоды
       let city = settings.region || ''
@@ -230,5 +250,26 @@ export const SocialService = {
         user_id: user.id,
         community_visible: visible
       })
+  },
+
+  /**
+   * Переключить лайк для записи
+   */
+  async toggleLike(activityId: string): Promise<boolean> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+      
+      const { data, error } = await supabase.rpc('toggle_like', {
+        p_activity_id: activityId,
+        p_user_id: user.id
+      })
+      
+      if (error) throw error
+      return data // возвращает true если лайк поставлен, false если убран
+    } catch (err) {
+      console.error('Failed to toggle like:', err)
+      throw err
+    }
   }
 }
