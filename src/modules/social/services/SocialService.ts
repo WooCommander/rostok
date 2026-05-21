@@ -10,9 +10,19 @@ export interface SocialActivity {
   emoji: string
   timeAgo: string
   likes: number
+  commentsCount: number
   location: string
   isReal?: boolean
   isLikedByMe?: boolean
+}
+
+export interface SocialComment {
+  id: string
+  activityId: string
+  userId: string
+  userName: string
+  text: string
+  timeAgo: string
 }
 
 interface CommunityRow {
@@ -25,6 +35,7 @@ interface CommunityRow {
   city: string | null
   location_label: string | null
   likes_count: number
+  comments_count: number
   created_at: string
   is_liked_by_me?: boolean
 }
@@ -72,7 +83,8 @@ function mapRowToActivity(row: CommunityRow): SocialActivity {
     plant: row.plant_name,
     emoji: row.plant_emoji,
     timeAgo: formatTimeAgo(row.created_at),
-    likes: row.likes_count,
+    likes: row.likes_count || 0,
+    commentsCount: row.comments_count || 0,
     location: row.city ? `г. ${row.city}` : (row.location_label || 'В вашем регионе'),
     isReal: true,
     isLikedByMe: row.is_liked_by_me || false
@@ -270,6 +282,73 @@ export const SocialService = {
     } catch (err) {
       console.error('Failed to toggle like:', err)
       throw err
+    }
+  },
+
+  /**
+   * Получить комментарии к записи
+   */
+  async getComments(activityId: string): Promise<SocialComment[]> {
+    try {
+      const { data, error } = await supabase
+        .from('community_comments')
+        .select('*')
+        .eq('activity_id', activityId)
+        .order('created_at', { ascending: true })
+        
+      if (error) throw error
+      
+      return (data || []).map(row => ({
+        id: row.id,
+        activityId: row.activity_id,
+        userId: row.user_id,
+        userName: row.display_name,
+        text: row.text,
+        timeAgo: formatTimeAgo(row.created_at)
+      }))
+    } catch (err) {
+      console.error('Failed to get comments:', err)
+      return []
+    }
+  },
+
+  /**
+   * Добавить комментарий
+   */
+  async addComment(activityId: string, text: string): Promise<SocialComment | null> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+      
+      // Формируем display name из email
+      const displayName = user.is_anonymous
+        ? 'Огородник (Демо)'
+        : (user.email?.split('@')[0] || 'Огородник')
+      
+      const { data, error } = await supabase
+        .from('community_comments')
+        .insert({
+          activity_id: activityId,
+          user_id: user.id,
+          display_name: displayName,
+          text
+        })
+        .select()
+        .single()
+        
+      if (error) throw error
+      
+      return {
+        id: data.id,
+        activityId: data.activity_id,
+        userId: data.user_id,
+        userName: data.display_name,
+        text: data.text,
+        timeAgo: 'только что'
+      }
+    } catch (err) {
+      console.error('Failed to add comment:', err)
+      return null
     }
   }
 }

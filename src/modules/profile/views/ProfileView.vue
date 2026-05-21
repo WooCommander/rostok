@@ -5,6 +5,8 @@ import { LogOut, MapPin, Thermometer, ChevronRight, Sun, Moon, FileText, Refresh
 import { authStore } from '@/modules/auth/store/authStore'
 import { useTheme } from '@/composables/useTheme'
 import { supabase } from '@/api/supabase'
+import FpPremiumBadge from '@/shared/ui/FpPremiumBadge.vue'
+import FpPaywallModal from '@/shared/ui/FpPaywallModal.vue'
 import { WeatherService } from '@/modules/weather/services/WeatherService'
 import { changelog } from '@/data/changelog'
 import { useTipsState, TipOfTheDayModal } from '@/modules/tips'
@@ -32,6 +34,7 @@ const isPremium = ref(false)
 const saving = ref(false)
 const saved = ref(false)
 const gpsLoading = ref(false)
+const showPaywall = ref(false)
 
 // Stats
 const stats = ref({
@@ -169,6 +172,13 @@ async function togglePremiumDemo() {
     communityVisible.value = true
   }
   await saveSettings()
+}
+
+function handlePrivacyToggleClick(e: Event) {
+  if (!isPremium.value) {
+    e.preventDefault()
+    showPaywall.value = true
+  }
 }
 
 async function logout() {
@@ -373,10 +383,10 @@ async function logout() {
       <div class="settings-card">
         <div class="setting-row">
           <div class="setting-label">
-            <Lock v-if="!isPremium" :size="14" style="color: var(--color-error);" />
             Показывать мою активность
+            <FpPremiumBadge v-if="!isPremium" style="margin-left: 8px;" />
           </div>
-          <div class="setting-control">
+          <div class="setting-control" @click.capture="handlePrivacyToggleClick">
             <label class="toggle-switch" :class="{ disabled: !isPremium }">
               <input type="checkbox" v-model="communityVisible" @change="saveSettings" :disabled="!isPremium" />
               <span class="toggle-slider"></span>
@@ -455,6 +465,8 @@ async function logout() {
     />
 
   </div>
+  <!-- Paywall Modal -->
+  <FpPaywallModal v-model="showPaywall" feature-name="Приватность профиля" />
 </template>
 
 <style scoped lang="scss">

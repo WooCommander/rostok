@@ -1,13 +1,21 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { ArrowLeft, Users, MapPin, Sparkles } from 'lucide-vue-next'
+import { ArrowLeft, Users, MapPin, Sparkles, MessageCircle, Send } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
-import { SocialService, type SocialActivity } from '@/modules/social/services/SocialService'
+import { SocialService, type SocialActivity, type SocialComment } from '@/modules/social/services/SocialService'
 import FpPullToRefresh from '@/design-system/components/FpPullToRefresh.vue'
+import FpBottomSheetModal from '@/shared/ui/FpBottomSheetModal.vue'
 
 const router = useRouter()
 const activities = ref<SocialActivity[]>([])
 const loading = ref(true)
+
+// Модалка комментариев
+const selectedActivity = ref<SocialActivity | null>(null)
+const comments = ref<SocialComment[]>([])
+const newCommentText = ref('')
+const loadingComments = ref(false)
+const sendingComment = ref(false)
 
 async function loadFeed() {
   loading.value = true
@@ -51,6 +59,57 @@ async function likeActivity(act: SocialActivity) {
     act.isLikedByMe = wasLiked
   }
 }
+
+async function openComments(act: SocialActivity) {
+  selectedActivity.value = act
+  comments.value = []
+  loadingComments.value = true
+  
+  try {
+    comments.value = await SocialService.getComments(act.id)
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loadingComments.value = false
+  }
+}
+
+async function sendComment() {
+  const text = newCommentText.value.trim()
+  const act = selectedActivity.value
+  if (!text || !act || sendingComment.value) return
+  
+  sendingComment.value = true
+  
+  // Optimistic update
+  const tempId = `temp_${Date.now()}`
+  comments.value.push({
+    id: tempId,
+    activityId: act.id,
+    userId: 'me',
+    userName: 'Вы',
+    text: text,
+    timeAgo: 'только что'
+  })
+  
+  act.commentsCount++
+  newCommentText.value = ''
+  
+  try {
+    const realComment = await SocialService.addComment(act.id, text)
+    if (realComment) {
+      // Replace temp with real
+      const idx = comments.value.findIndex(c => c.id === tempId)
+      if (idx !== -1) comments.value[idx] = realComment
+    }
+  } catch (e) {
+    console.error(e)
+    act.commentsCount--
+    comments.value = comments.value.filter(c => c.id !== tempId)
+  } finally {
+    sendingComment.value = false
+  }
+}
 </script>
 
 <template>
@@ -86,6 +145,10 @@ async function likeActivity(act: SocialActivity) {
             Только что {{ act.action }} <strong>{{ act.emoji }} {{ act.plant }}</strong>
           </div>
           <div class="social-footer">
+            <button class="action-btn" @click="openComments(act)">
+              <MessageCircle :size="14" />
+              <span>{{ act.commentsCount || 0 }}</span>
+            </button>
             <button class="like-btn" :class="{ 'liked': act.isLikedByMe }" @click="likeActivity(act)">
               <Sparkles :size="14" :fill="act.isLikedByMe ? 'currentColor' : 'none'" />
               <span>{{ act.isLikedByMe ? 'Вы оценили' : 'Полезно' }} ({{ act.likes }})</span>
@@ -99,6 +162,58 @@ async function likeActivity(act: SocialActivity) {
       </div>
     </div>
   </FpPullToRefresh>
+
+  <!-- Модальное окно комментариев -->
+  <FpBottomSheetModal 
+    :model-value="!!selectedActivity" 
+    @update:model-value="!$event && (selectedActivity = null)"
+    :with-glow="true"
+  >
+    <template #header>
+      <h3 class="modal-title">Комментарии</h3>
+    </template>
+    
+    <div class="comments-container">
+      <div v-if="loadingComments" class="comments-loading">
+        Загрузка...
+      </div>
+      <div v-else-if="comments.length === 0" class="comments-empty">
+        Пока нет комментариев. Будьте первым!
+      </div>
+      <div v-else class="comments-list">
+        <div v-for="comment in comments" :key="comment.id" class="comment-item">
+          <div class="comment-avatar">{{ comment.userName[0] }}</div>
+          <div class="comment-content">
+            <div class="comment-header">
+              <span class="comment-author">{{ comment.userName }}</span>
+              <span class="comment-time">{{ comment.timeAgo }}</span>
+            </div>
+            <div class="comment-text">{{ comment.text }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <template #footer>
+      <div class="comment-input-area">
+        <input 
+          v-model="newCommentText" 
+          type="text" 
+          placeholder="Написать комментарий..." 
+          class="comment-input"
+          @keyup.enter="sendComment"
+          :disabled="sendingComment"
+        />
+        <button 
+          class="send-btn" 
+          :disabled="!newCommentText.trim() || sendingComment"
+          @click="sendComment"
+        >
+          <Send :size="18" />
+        </button>
+      </div>
+    </template>
+  </FpBottomSheetModal>
 </template>
 
 <style scoped lang="scss">
@@ -240,8 +355,10 @@ async function likeActivity(act: SocialActivity) {
   padding-top: 12px;
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
 }
 
+.action-btn,
 .like-btn {
   background: transparent;
   border: none;
@@ -250,7 +367,6 @@ async function likeActivity(act: SocialActivity) {
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-primary);
   cursor: pointer;
   padding: 6px 12px;
   border-radius: var(--radius-sm);
@@ -262,9 +378,146 @@ async function likeActivity(act: SocialActivity) {
   &:active {
     transform: scale(0.95);
   }
-  
+}
+
+.action-btn {
+  color: var(--color-text-secondary);
+}
+
+.like-btn {
+  color: var(--color-primary);
   &.liked {
     background: rgba(45, 106, 79, 0.15);
+  }
+}
+
+/* Comments Modal */
+.modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.comments-container {
+  min-height: 200px;
+  max-height: 50vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.comments-loading,
+.comments-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-disabled);
+  font-size: 14px;
+  padding: 32px 0;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.comment-item {
+  display: flex;
+  gap: 12px;
+}
+
+.comment-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.comment-content {
+  flex: 1;
+  background: var(--color-surface-hover);
+  padding: 10px 14px;
+  border-radius: 0 var(--radius-lg) var(--radius-lg) var(--radius-lg);
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.comment-author {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.comment-time {
+  font-size: 11px;
+  color: var(--color-text-disabled);
+}
+
+.comment-text {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+  word-break: break-word;
+}
+
+.comment-input-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 4px 4px 4px 16px;
+}
+
+.comment-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+  color: var(--color-text-primary);
+  
+  &::placeholder {
+    color: var(--color-text-disabled);
+  }
+}
+
+.send-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  &:active:not(:disabled) {
+    transform: scale(0.9);
   }
 }
 
