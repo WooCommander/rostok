@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, watch, type Ref } from 'vue'
+import { onUnmounted, watch, type Ref } from 'vue'
 
 export interface SwipeOptions {
   /** Threshold in pixels to trigger dismiss */
