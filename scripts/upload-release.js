@@ -119,10 +119,10 @@ if (!bucketExists) {
 }
 
 // ── Upload APK ───────────────────────────────────────────────────────────────
-const apkPath = resolve(root, 'android/app/build/outputs/apk/debug/app-debug.apk')
+const apkPath = resolve(root, 'android/app/build/outputs/apk/release/app-release.apk')
 if (!existsSync(apkPath)) {
     console.error('\n❌  APK not found:', apkPath)
-    console.error('    Run: npm run build-debug-apk  first')
+    console.error('    Run: npm run build-release-apk  first')
     process.exit(1)
 }
 

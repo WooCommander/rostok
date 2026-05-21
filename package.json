@@ -10,9 +10,9 @@
     "get-android-version": "node scripts/get-android-version.js",
     "sync-android-version": "node scripts/sync-android-version.js",
     "update-android": "npm run build && npm run sync-android-version && npx cap sync android",
-    "build-debug-apk": "cd android && gradlew assembleDebug",
+    "build-release-apk": "cd android && gradlew assembleRelease",
     "upload-release": "node scripts/upload-release.js",
-    "release": "npm run update-android && npm run build-debug-apk && node scripts/upload-release.js",
+    "release": "npm run update-android && npm run build-release-apk && node scripts/upload-release.js",
     "test": "vitest"
   },
   "dependencies": {
