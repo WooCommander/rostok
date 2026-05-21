@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { Bookmark, BookmarkCheck, Sparkles, Share2, RefreshCw, Check, X, CheckCircle2 } from 'lucide-vue-next'
 import type { TipUiModel } from '../adapters/TipsAdapter'
 import { useTipsState } from '../state/useTipsState'
+import { useSwipeToDismiss } from '@/shared/lib'
 
 interface Props {
   tip: TipUiModel
@@ -17,6 +18,14 @@ const emit = defineEmits<{
 
 const copied = ref(false)
 const { isSaved, toggleSaveTip } = useTipsState()
+
+const modalContainer = ref<HTMLElement | null>(null)
+
+useSwipeToDismiss(modalContainer, {
+  onDismiss: () => {
+    emit('update:modelValue', false)
+  }
+})
 
 async function shareTip() {
   const bulletsText = props.tip.bullets?.map(b => `• ${b}`).join('\n') || ''
@@ -46,7 +55,7 @@ function close() {
 <template>
   <Transition name="modal-fade">
     <div v-if="props.modelValue" class="modal-backdrop" @click.self="close">
-      <div class="modal-container">
+      <div ref="modalContainer" class="modal-container">
         <!-- Декоративная полоса сверху -->
         <div class="modal-glow-bar"></div>
 
@@ -140,8 +149,8 @@ function close() {
   border-radius: var(--radius-2xl, 24px);
   width: 100%;
   max-width: 520px;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: 85vh;
+  max-height: 85dvh;
   position: relative;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
   display: flex;
@@ -188,6 +197,7 @@ function close() {
   align-items: center;
   justify-content: space-between;
   padding-right: 60px; /* Чтобы не наезжать на крестик */
+  flex-shrink: 0;
 }
 
 .header-badge {
@@ -244,6 +254,8 @@ function close() {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .emoji-wrapper {
@@ -320,6 +332,7 @@ function close() {
   gap: 16px;
   border-bottom-left-radius: 24px;
   border-bottom-right-radius: 24px;
+  flex-shrink: 0;
 }
 
 .secondary-actions {
