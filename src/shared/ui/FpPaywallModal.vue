@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Sparkles, CheckCircle2, ShieldCheck, Map, Users } from 'lucide-vue-next'
+import { Sparkles, ShieldCheck, Map, Users } from 'lucide-vue-next'
 import FpBottomSheetModal from './FpBottomSheetModal.vue'
 import FpPremiumBadge from './FpPremiumBadge.vue'
 

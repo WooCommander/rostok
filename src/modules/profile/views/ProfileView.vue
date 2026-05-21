@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { LogOut, MapPin, Thermometer, ChevronRight, Sun, Moon, FileText, RefreshCw, Bookmark, Sprout, ShieldAlert, BarChart3, Database, Users, Lock, Unlock, Crown } from 'lucide-vue-next'
+import { LogOut, MapPin, Thermometer, ChevronRight, Sun, Moon, FileText, RefreshCw, Bookmark, Sprout, ShieldAlert, BarChart3, Database, Users, Crown } from 'lucide-vue-next'
 import { authStore } from '@/modules/auth/store/authStore'
 import { useTheme } from '@/composables/useTheme'
 import { supabase } from '@/api/supabase'

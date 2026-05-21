@@ -1,6 +1,4 @@
 import { supabase } from '@/api/supabase'
-import { WeatherService } from '@/modules/weather/services/WeatherService'
-import { PlantService } from '@/modules/plants/services/PlantService'
 
 export interface SocialActivity {
   id: string
@@ -51,15 +49,6 @@ const ACTION_LABELS: Record<string, string> = {
   other: 'ухаживает за'
 }
 
-// ── Mock-генерация (fallback) ──
-const mockNames = ['Александр', 'Елена', 'Михаил', 'Анна', 'Сергей', 'Ольга', 'Дмитрий', 'Мария', 'Иван', 'Наталья', 'Виктория', 'Андрей', 'Ирина', 'Екатерина', 'Алексей']
-const mockLocations = ['СНТ "Ромашка"', 'Дачный посёлок', 'Рядом с вами', 'В вашем регионе', 'Соседний участок', 'Теплица', 'Пригород']
-const mockActions = Object.entries(ACTION_LABELS)
-
-function getRandom<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]
-}
-
 function formatTimeAgo(dateStr: string): string {
   const now = Date.now()
   const then = new Date(dateStr).getTime()
@@ -89,38 +78,6 @@ function mapRowToActivity(row: CommunityRow): SocialActivity {
     isReal: true,
     isLikedByMe: row.is_liked_by_me || false
   }
-}
-
-async function generateMockFeed(count: number): Promise<SocialActivity[]> {
-  const [weather, plants] = await Promise.all([
-    WeatherService.getWithCache(),
-    PlantService.getAll()
-  ])
-  
-  const city = weather.city || 'Мой регион'
-  const result: SocialActivity[] = []
-  
-  for (let i = 0; i < count; i++) {
-    const plant = getRandom(plants)
-    const [, actionText] = getRandom(mockActions)
-    const maxMinutes = count * 10
-    const timeMins = 2 + Math.floor(Math.random() * maxMinutes)
-    const loc = Math.random() > 0.4 ? `г. ${city}` : getRandom(mockLocations)
-    
-    result.push({
-      id: `mock_${i}_${Date.now()}_${Math.random()}`,
-      userName: getRandom(mockNames),
-      action: actionText,
-      plant: plant.name,
-      emoji: plant.emoji || '🌱',
-      timeAgo: `${timeMins} мин назад`,
-      likes: Math.floor(Math.random() * 25),
-      location: loc,
-      isReal: false
-    })
-  }
-  
-  return result.sort((a, b) => parseInt(a.timeAgo) - parseInt(b.timeAgo))
 }
 
 export const SocialService = {
@@ -199,17 +156,18 @@ export const SocialService = {
       }
       
       // Получаем город из настроек или из погоды
-      let city = settings.region || ''
+      let city = settings?.region || ''
       if (!city) {
         try {
-          const weather = await WeatherService.getWithCache()
-          city = weather.city || ''
+          const res = await fetch('https://ipapi.co/json/')
+          const data = await res.json()
+          city = data.city || ''
         } catch (_) { /* без города тоже можно */ }
       }
       
       // Формируем display name из email
       const displayName = user.is_anonymous
-        ? getRandom(mockNames)
+        ? 'Огородник (Демо)'
         : (user.email?.split('@')[0] || 'Огородник')
       
       await supabase
