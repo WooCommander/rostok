@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+
 import { Crown, Sparkles, X, CheckCircle2 } from 'lucide-vue-next'
 
 interface Props {
