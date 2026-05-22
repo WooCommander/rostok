@@ -9,6 +9,16 @@ export interface ReleaseNote {
 
 export const changelog: ReleaseNote[] = [
     {
+        version: '1.15.0',
+        date: '2026-05-23',
+        highlights: [
+            'Стабильность и исправление ошибок 🛠️'
+        ],
+        fixes: [
+            'Исправлена критическая ошибка, из-за которой приложение могло падать при запуске на мобильных устройствах после обновления.'
+        ]
+    },
+    {
         version: '1.14.0',
         date: '2026-05-22',
         highlights: [
