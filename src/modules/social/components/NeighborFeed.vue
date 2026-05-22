@@ -10,7 +10,9 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-    activities.value = await SocialService.getFeed(4)
+    activities.value = await SocialService.getFeed(4, false, (newData) => {
+      activities.value = newData
+    })
   } catch (err) {
     console.error('Failed to load social feed:', err)
   } finally {

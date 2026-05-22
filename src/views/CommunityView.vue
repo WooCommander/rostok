@@ -17,10 +17,12 @@ const newCommentText = ref('')
 const loadingComments = ref(false)
 const sendingComment = ref(false)
 
-async function loadFeed() {
+async function loadFeed(force = false) {
   loading.value = true
   try {
-    activities.value = await SocialService.getFeed(15)
+    activities.value = await SocialService.getFeed(15, force, (newData) => {
+      activities.value = newData
+    })
   } catch (err) {
     console.error('Failed to load social feed:', err)
   } finally {
@@ -33,7 +35,7 @@ onMounted(() => {
 })
 
 async function onRefresh(done: () => void) {
-  await loadFeed()
+  await loadFeed(true)
   done()
 }
 

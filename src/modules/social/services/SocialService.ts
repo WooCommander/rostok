@@ -1,4 +1,5 @@
 import { supabase } from '@/api/supabase'
+import { Preferences } from '@capacitor/preferences'
 
 export interface SocialActivity {
   id: string
@@ -80,12 +81,61 @@ function mapRowToActivity(row: CommunityRow): SocialActivity {
   }
 }
 
+let feedCache: {
+  data: SocialActivity[];
+  timestamp: number;
+} | null = null;
+const CACHE_TTL = 3 * 60 * 1000; // 3 minutes
+const PREF_CACHE_KEY = 'social_feed_cache'
+
 export const SocialService = {
   /**
    * Получить ленту сообщества.
    * Отключена генерация мок-данных для полноценного тестирования.
    */
-  async getFeed(count: number = 10): Promise<SocialActivity[]> {
+  async getFeed(count: number = 10, forceRefresh: boolean = false, onBackgroundUpdate?: (data: SocialActivity[]) => void): Promise<SocialActivity[]> {
+    if (!forceRefresh) {
+      // 1. Try In-Memory Cache first
+      if (feedCache && feedCache.data.length >= count) {
+        if (Date.now() - feedCache.timestamp < CACHE_TTL) {
+          return feedCache.data.slice(0, count);
+        } else if (onBackgroundUpdate) {
+          // Trigger background update if TTL expired
+          this.fetchRealFeed(count).then(newData => onBackgroundUpdate(newData));
+          return feedCache.data.slice(0, count);
+        }
+      }
+      
+      // 2. Try Preferences Cache (Cold start)
+      if (!feedCache) {
+        try {
+          const { value } = await Preferences.get({ key: PREF_CACHE_KEY })
+          if (value) {
+            const parsed = JSON.parse(value)
+            if (parsed && parsed.data && parsed.data.length > 0) {
+              feedCache = parsed
+              if (feedCache && feedCache.data.length >= count) {
+                // Return immediately, but trigger background fetch
+                if (onBackgroundUpdate) {
+                  this.fetchRealFeed(count).then(newData => onBackgroundUpdate(newData));
+                }
+                return feedCache.data.slice(0, count);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to load feed cache from Preferences', e)
+        }
+      }
+    }
+
+    return await this.fetchRealFeed(count)
+  },
+
+  /**
+   * Приватный метод для реального запроса ленты с сервера
+   */
+  async fetchRealFeed(count: number): Promise<SocialActivity[]> {
     let realActivities: SocialActivity[] = []
     
     try {
@@ -116,6 +166,12 @@ export const SocialService = {
         } else {
           realActivities = (data as CommunityRow[]).map(mapRowToActivity)
         }
+        
+        feedCache = {
+          data: realActivities,
+          timestamp: Date.now()
+        }
+        Preferences.set({ key: PREF_CACHE_KEY, value: JSON.stringify(feedCache) }).catch(() => {})
       }
     } catch (_) {
       console.warn('Failed to fetch real feed')
@@ -181,6 +237,10 @@ export const SocialService = {
           city: city || null,
           location_label: params.locationLabel || null
         })
+        
+      // Сбрасываем кэш, чтобы при следующем открытии ленты загрузилась новая запись
+      feedCache = null;
+      Preferences.remove({ key: PREF_CACHE_KEY }).catch(() => {})
     } catch (err) {
       // Не блокируем основной flow при ошибках публикации
       console.warn('Не удалось опубликовать в сообщество:', err)
