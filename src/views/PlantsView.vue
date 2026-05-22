@@ -6,6 +6,9 @@ import { PlantService, type Plant, type UserPlant } from '@/modules/plants/servi
 import { authStore } from '@/modules/auth/store/authStore'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import FpPullToRefresh from '@/design-system/components/FpPullToRefresh.vue'
+import FpPaywallModal from '@/design-system/components/FpPaywallModal.vue'
+
+const showPaywall = ref(false)
 
 
 const router = useRouter()
@@ -220,7 +223,7 @@ async function addAnotherInstance(plantId?: string) {
     openEditModal(newInst, new Event('click'))
   } catch (e: any) {
     if (e.message === 'PREMIUM_REQUIRED_PLANT') {
-      alert('В бесплатной версии можно добавить только 1 грядку. Оформите Premium-подписку в Профиле!')
+      showPaywall.value = true
     } else {
       console.error(e)
     }
@@ -267,7 +270,7 @@ async function toggleGardenCatalog(plant: Plant, event: Event) {
     }
   } catch (e: any) {
     if (e.message === 'PREMIUM_REQUIRED_PLANT') {
-      alert('В бесплатной версии можно добавить только 1 грядку. Оформите Premium-подписку в Профиле!')
+      showPaywall.value = true
     } else {
       console.error('Ошибка изменения списка сада:', e)
     }
@@ -661,6 +664,13 @@ onUnmounted(() => {
       <ConfirmDialog v-model="showDeleteConfirm" title="Удаление грядки"
         message="Вы уверены, что хотите удалить эту грядку/культуру из вашего огорода? Вся связанная с ней история и записи будут удалены."
         confirmText="Удалить" cancelText="Отмена" :isDanger="true" @confirm="onConfirmDelete" />
+
+      <!-- Paywall -->
+      <FpPaywallModal
+        v-if="showPaywall"
+        @close="showPaywall = false"
+        @subscribe="router.push('/profile')"
+      />
     </div>
   </FpPullToRefresh>
 </template>

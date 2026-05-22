@@ -4,6 +4,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Plus, Bookmark, BookmarkCheck, Sparkles, RefreshCw, ChevronLeft, ChevronRight, Lightbulb, Ban } from 'lucide-vue-next'
 import { PlantService, type Plant, type PlantCare, type PlantSecret } from '@/modules/plants/services/PlantService'
 import { authStore } from '@/modules/auth/store/authStore'
+import FpPaywallModal from '@/design-system/components/FpPaywallModal.vue'
+
+const showPaywall = ref(false)
 
 const route = useRoute()
 const router = useRouter()
@@ -122,7 +125,7 @@ async function toggleGarden() {
     inGarden.value = await PlantService.toggleUserPlant(id)
   } catch (e: any) {
     if (e.message === 'PREMIUM_REQUIRED_PLANT') {
-      alert('В бесплатной версии можно добавить только 1 грядку. Оформите Premium-подписку в Профиле!')
+      showPaywall.value = true
     } else {
       console.error(e)
     }
@@ -429,6 +432,11 @@ function getDiffLabel(diff?: string): string {
       </Transition>
     </template>
 
+    <FpPaywallModal
+      v-if="showPaywall"
+      @close="showPaywall = false"
+      @subscribe="router.push('/profile')"
+    />
   </div>
 </template>
 

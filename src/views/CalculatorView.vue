@@ -6,6 +6,9 @@ import { CalculatorService, type CalculationInput, CalculatorResultCard, PhCalcu
 import { supabase } from '@/api/supabase'
 import { authStore } from '@/modules/auth/store/authStore'
 import { onMounted } from 'vue'
+import FpPaywallModal from '@/design-system/components/FpPaywallModal.vue'
+
+const showPaywall = ref(false)
 
 const router = useRouter()
 
@@ -22,7 +25,7 @@ onMounted(async () => {
 
 function handleTabSwitch(tab: 'fertilizer' | 'ph') {
   if (tab === 'ph' && !isPremium.value) {
-    alert('Калькулятор раскисления (pH) доступен только по Premium-подписке. Оформите её в Профиле!')
+    showPaywall.value = true
     return
   }
   activeTab.value = tab
@@ -30,7 +33,7 @@ function handleTabSwitch(tab: 'fertilizer' | 'ph') {
 
 function handleFertilizerSelect(id: string) {
   if (!isPremium.value && id !== fertilizers[0].id) {
-    alert('Выбор дополнительных удобрений доступен только по Premium-подписке. Оформите её в Профиле!')
+    showPaywall.value = true
     return
   }
   selectedFertilizerId.value = id
@@ -281,6 +284,12 @@ const calculationResult = computed(() => {
         </div>
       </div>
     </div>
+
+    <FpPaywallModal
+      v-if="showPaywall"
+      @close="showPaywall = false"
+      @subscribe="router.push('/profile')"
+    />
   </div>
 </template>
 
