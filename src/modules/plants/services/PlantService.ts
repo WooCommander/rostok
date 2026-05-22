@@ -221,6 +221,25 @@ export const PlantService = {
     })
   },
 
+  async checkPlantLimit(userId: string): Promise<void> {
+    const { data: settings } = await supabase
+      .from('user_settings')
+      .select('is_premium')
+      .eq('user_id', userId)
+      .single()
+      
+    if (settings?.is_premium) return;
+
+    const { count, error } = await supabase
+      .from('user_plants')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      
+    if (!error && count !== null && count >= 1) {
+      throw new Error('PREMIUM_REQUIRED_PLANT')
+    }
+  },
+
   async toggleUserPlant(plantId: string): Promise<boolean> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Необходима авторизация')
@@ -243,6 +262,7 @@ export const PlantService = {
       return false
     } else {
       // Добавляем
+      await this.checkPlantLimit(user.id)
       const { error: insErr } = await supabase
         .from('user_plants')
         .insert({ user_id: user.id, plant_id: plantId })
@@ -276,6 +296,9 @@ export const PlantService = {
   async addUserPlantInstance(plantId: string): Promise<UserPlant> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Необходима авторизация')
+    
+    await this.checkPlantLimit(user.id)
+    
     const { data, error } = await supabase
       .from('user_plants')
       .insert({ user_id: user.id, plant_id: plantId })

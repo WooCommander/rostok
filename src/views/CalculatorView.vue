@@ -3,10 +3,38 @@ import { ref, computed } from 'vue'
 import { ArrowLeft, Calculator, HelpCircle, FlaskConical, Droplet } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { CalculatorService, type CalculationInput, CalculatorResultCard, PhCalculatorService, type SoilTexture, type DeoxidizerType } from '@/modules/calculator'
+import { supabase } from '@/api/supabase'
+import { authStore } from '@/modules/auth/store/authStore'
+import { onMounted } from 'vue'
 
 const router = useRouter()
 
 const activeTab = ref<'fertilizer' | 'ph'>('fertilizer')
+const isPremium = ref(false)
+
+onMounted(async () => {
+  const user = authStore.user.value
+  if (user) {
+    const { data } = await supabase.from('user_settings').select('is_premium').eq('user_id', user.id).single()
+    isPremium.value = !!data?.is_premium
+  }
+})
+
+function handleTabSwitch(tab: 'fertilizer' | 'ph') {
+  if (tab === 'ph' && !isPremium.value) {
+    alert('Калькулятор раскисления (pH) доступен только по Premium-подписке. Оформите её в Профиле!')
+    return
+  }
+  activeTab.value = tab
+}
+
+function handleFertilizerSelect(id: string) {
+  if (!isPremium.value && id !== fertilizers[0].id) {
+    alert('Выбор дополнительных удобрений доступен только по Premium-подписке. Оформите её в Профиле!')
+    return
+  }
+  selectedFertilizerId.value = id
+}
 
 // --- Fertilizer State ---
 const fertilizers = CalculatorService.getFertilizers()
@@ -59,11 +87,11 @@ const calculationResult = computed(() => {
     </div>
 
     <div class="main-tabs">
-      <button class="main-tab-btn" :class="{ active: activeTab === 'fertilizer' }" @click="activeTab = 'fertilizer'">
+      <button class="main-tab-btn" :class="{ active: activeTab === 'fertilizer' }" @click="handleTabSwitch('fertilizer')">
         <Droplet :size="18" /> Подкормка и полив
       </button>
-      <button class="main-tab-btn" :class="{ active: activeTab === 'ph' }" @click="activeTab = 'ph'">
-        <FlaskConical :size="18" /> Раскисление (pH)
+      <button class="main-tab-btn" :class="{ active: activeTab === 'ph' }" @click="handleTabSwitch('ph')">
+        <FlaskConical :size="18" /> Раскисление (pH) 👑
       </button>
     </div>
 
@@ -74,13 +102,13 @@ const calculationResult = computed(() => {
           <label class="section-label">1. Выберите удобрение</label>
           <div class="fert-select-grid">
             <button
-              v-for="f in fertilizers"
+              v-for="(f, index) in fertilizers"
               :key="f.id"
               class="fert-select-btn"
-              :class="{ active: selectedFertilizerId === f.id }"
-              @click="selectedFertilizerId = f.id"
+              :class="{ active: selectedFertilizerId === f.id, 'premium-locked': !isPremium && index > 0 }"
+              @click="handleFertilizerSelect(f.id)"
             >
-              <div class="fert-btn-title">{{ f.name }}</div>
+              <div class="fert-btn-title">{{ f.name }} <span v-if="!isPremium && index > 0" class="premium-icon">👑</span></div>
               <div class="fert-btn-cat" :class="f.category">
                 {{ f.category === 'organic' ? 'Органика' : f.category === 'complex' ? 'Комплексное' : f.category === 'nitrogen' ? 'Азотное' : f.category === 'phosphorus' ? 'Фосфорное' : 'Калийное' }}
               </div>

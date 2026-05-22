@@ -120,8 +120,12 @@ async function toggleGarden() {
   const id = route.params.id as string
   try {
     inGarden.value = await PlantService.toggleUserPlant(id)
-  } catch (e) {
-    console.error(e)
+  } catch (e: any) {
+    if (e.message === 'PREMIUM_REQUIRED_PLANT') {
+      alert('В бесплатной версии можно добавить только 1 грядку. Оформите Premium-подписку в Профиле!')
+    } else {
+      console.error(e)
+    }
   }
 }
 

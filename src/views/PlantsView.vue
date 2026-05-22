@@ -218,8 +218,12 @@ async function addAnotherInstance(plantId?: string) {
     const newInst = await PlantService.addUserPlantInstance(plantId)
     userPlantsList.value.push(newInst)
     openEditModal(newInst, new Event('click'))
-  } catch (e) {
-    console.error(e)
+  } catch (e: any) {
+    if (e.message === 'PREMIUM_REQUIRED_PLANT') {
+      alert('В бесплатной версии можно добавить только 1 грядку. Оформите Premium-подписку в Профиле!')
+    } else {
+      console.error(e)
+    }
   } finally {
     savingModal.value = false
   }
@@ -261,8 +265,12 @@ async function toggleGardenCatalog(plant: Plant, event: Event) {
       }
       userPlantsList.value = userPlantsList.value.filter(u => u.plant_id !== plant.id)
     }
-  } catch (e) {
-    console.error('Ошибка изменения списка сада:', e)
+  } catch (e: any) {
+    if (e.message === 'PREMIUM_REQUIRED_PLANT') {
+      alert('В бесплатной версии можно добавить только 1 грядку. Оформите Premium-подписку в Профиле!')
+    } else {
+      console.error('Ошибка изменения списка сада:', e)
+    }
   }
 }
 
