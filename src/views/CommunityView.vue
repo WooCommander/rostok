@@ -156,7 +156,10 @@ async function sendComment() {
           </div>
         </div>
         
-        <div class="feed-end">
+        <div v-if="activities.length === 0" class="feed-empty">
+          <p>В вашем регионе пока нет активностей. Будьте первыми!</p>
+        </div>
+        <div v-else class="feed-end">
           <p>Вы досмотрели до конца ленты.</p>
         </div>
       </div>
@@ -534,7 +537,8 @@ async function sendComment() {
   opacity: 0.5;
 }
 
-.feed-end {
+.feed-end,
+.feed-empty {
   text-align: center;
   padding: 24px 0;
   color: var(--color-text-disabled);

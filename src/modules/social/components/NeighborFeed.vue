@@ -24,7 +24,7 @@ function likeActivity(act: SocialActivity) {
 </script>
 
 <template>
-  <section class="section social-feed-section">
+  <section v-if="loading || activities.length > 0" class="section social-feed-section">
     <div class="section-title-row">
       <div class="section-title">
         <Users :size="16" />
