@@ -37,35 +37,37 @@ function close() {
 </script>
 
 <template>
-  <Transition name="fp-modal-fade">
-    <div v-if="props.modelValue" class="fp-modal-backdrop" @click.self="close">
-      <div ref="modalContainer" class="fp-modal-container" :style="{ maxWidth: props.maxWidth }">
-        
-        <!-- Декоративная полоса сверху -->
-        <div v-if="props.withGlow" class="fp-modal-glow-bar"></div>
+  <Teleport to="body">
+    <Transition name="fp-modal-fade">
+      <div v-if="props.modelValue" class="fp-modal-backdrop" @click.self="close">
+        <div ref="modalContainer" class="fp-modal-container" :style="{ maxWidth: props.maxWidth }">
+          
+          <!-- Декоративная полоса сверху -->
+          <div v-if="props.withGlow" class="fp-modal-glow-bar"></div>
 
-        <!-- Кнопка закрытия в углу -->
-        <button v-if="props.showCloseButton" class="fp-close-icon-btn" @click="close" title="Закрыть">
-          <X :size="20" />
-        </button>
+          <!-- Кнопка закрытия в углу -->
+          <button v-if="props.showCloseButton" class="fp-close-icon-btn" @click="close" title="Закрыть">
+            <X :size="20" />
+          </button>
 
-        <!-- Шапка -->
-        <div v-if="$slots.header" class="fp-modal-header" :class="{ 'with-glow': props.withGlow }">
-          <slot name="header"></slot>
-        </div>
+          <!-- Шапка -->
+          <div v-if="$slots.header" class="fp-modal-header" :class="{ 'with-glow': props.withGlow }">
+            <slot name="header"></slot>
+          </div>
 
-        <!-- Контент -->
-        <div class="fp-modal-body">
-          <slot></slot>
-        </div>
+          <!-- Контент -->
+          <div class="fp-modal-body">
+            <slot></slot>
+          </div>
 
-        <!-- Подвал -->
-        <div v-if="$slots.footer" class="fp-modal-footer">
-          <slot name="footer"></slot>
+          <!-- Подвал -->
+          <div v-if="$slots.footer" class="fp-modal-footer">
+            <slot name="footer"></slot>
+          </div>
         </div>
       </div>
-    </div>
-  </Transition>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped lang="scss">

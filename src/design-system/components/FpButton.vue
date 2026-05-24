@@ -55,6 +55,7 @@ const classes = computed(() => [
   cursor: pointer;
   transition: all 0.2s ease;
   overflow: hidden;
+  white-space: nowrap;
 
   // Sizes & Radius
   &--sm {
@@ -176,5 +177,14 @@ const classes = computed(() => [
     box-shadow: none !important;
     filter: none !important;
   }
+}
+
+.fp-button__content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
 }
 </style>

@@ -233,6 +233,18 @@ async function shareTip() {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+
+  :deep(.fp-button) {
+    padding: 0 8px;
+    font-size: 13px;
+  }
+
+  @media (max-width: 375px) {
+    :deep(.fp-button) {
+      padding: 0 6px;
+      font-size: 11px;
+    }
+  }
 }
 
 .copied-toast {
