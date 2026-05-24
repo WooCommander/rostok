@@ -463,10 +463,10 @@ async function logout() {
       @update:model-value="selectedTip = null"
       @next="selectedTip = null"
     />
+    <!-- Paywall Modal -->
+    <FpPaywallModal v-model="showPaywall" feature-name="Приватность профиля" />
 
   </div>
-  <!-- Paywall Modal -->
-  <FpPaywallModal v-model="showPaywall" feature-name="Приватность профиля" />
 </template>
 
 <style scoped lang="scss">
