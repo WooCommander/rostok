@@ -5,6 +5,8 @@ import { TankMixerService, type MixCheckResult, type PopularMix } from '../servi
 import { Beaker, AlertTriangle, CheckCircle, XCircle } from 'lucide-vue-next'
 import FpMobilePicker from '@/design-system/components/FpMobilePicker.vue'
 import FpSpinner from '@/design-system/components/FpSpinner.vue'
+import FpButton from '@/design-system/components/FpButton.vue'
+import SuggestMixModal from './SuggestMixModal.vue'
 
 const props = defineProps<{
   products: ProductItem[]
@@ -15,15 +17,45 @@ const selectedProduct2 = ref<ProductItem | null>(null)
 const selectedProduct3 = ref<ProductItem | null>(null)
 
 const popularMixes = ref<PopularMix[]>([])
+const pendingMixes = ref<PopularMix[]>([])
+const userVotes = ref<string[]>([])
 const loadingMixes = ref(true)
+const showSuggestModal = ref(false)
 
-onMounted(async () => {
+async function loadMixes() {
+  loadingMixes.value = true
   try {
-    popularMixes.value = await TankMixerService.getPopularMixes()
+    const [approved, pending, votes] = await Promise.all([
+      TankMixerService.getMixes('approved'),
+      TankMixerService.getMixes('pending'),
+      TankMixerService.getUserVotes()
+    ])
+    popularMixes.value = approved
+    pendingMixes.value = pending
+    userVotes.value = votes
   } finally {
     loadingMixes.value = false
   }
-})
+}
+
+onMounted(loadMixes)
+
+async function onSuggestMix(data: { name: string, description: string, productIds: string[] }) {
+  const success = await TankMixerService.suggestMix(data.name, data.description, data.productIds)
+  if (success) {
+    showSuggestModal.value = false
+    await loadMixes()
+  } else {
+    alert('Не удалось отправить рецепт. Проверьте авторизацию.')
+  }
+}
+
+async function onVote(mixId: string) {
+  const success = await TankMixerService.toggleVote(mixId)
+  if (success) {
+    await loadMixes()
+  }
+}
 
 const result = computed<MixCheckResult | null>(() => {
   const selected = [selectedProduct1.value, selectedProduct2.value, selectedProduct3.value].filter(Boolean) as ProductItem[]
@@ -39,8 +71,6 @@ const pickerItems = computed(() => {
     originalProduct: p
   }))
 })
-
-
 
 function applyMix(mixIds: string[]) {
   reset()
@@ -67,7 +97,10 @@ function reset() {
     </div>
 
     <div class="popular-mixes">
-      <div class="mixes-title">Популярные рецепты:</div>
+      <div class="mixes-title-row">
+        <div class="mixes-title">Популярные рецепты:</div>
+        <FpButton variant="text" size="sm" @click="showSuggestModal = true">+ Предложить свой</FpButton>
+      </div>
       <div v-if="loadingMixes" style="display: flex; justify-content: center; padding: 8px 0;">
         <FpSpinner size="md" />
       </div>
@@ -78,6 +111,25 @@ function reset() {
       </div>
       <div v-else style="font-size: 13px; color: var(--color-text-tertiary);">
         Нет доступных рецептов
+      </div>
+    </div>
+
+    <div v-if="pendingMixes.length > 0" class="pending-mixes">
+      <div class="mixes-title">На модерации сообщества (нужно 3 голоса):</div>
+      <div class="pending-cards">
+        <div v-for="mix in pendingMixes" :key="mix.id" class="pending-card">
+          <div class="pending-header" @click="applyMix(mix.products)">
+            <span class="pending-name">{{ mix.name }}</span>
+            <button 
+              class="vote-btn" 
+              :class="{ active: userVotes.includes(mix.id) }"
+              @click.stop="onVote(mix.id)"
+            >
+              👍 {{ mix.votes_count || 0 }}/3
+            </button>
+          </div>
+          <div v-if="mix.description" class="pending-desc">{{ mix.description }}</div>
+        </div>
       </div>
     </div>
 
@@ -138,6 +190,12 @@ function reset() {
         <button class="reset-btn" @click="reset">Очистить</button>
       </div>
     </Transition>
+
+    <SuggestMixModal
+      v-model:visible="showSuggestModal"
+      :products="products"
+      @submit="onSuggestMix"
+    />
   </div>
 </template>
 
@@ -181,14 +239,20 @@ function reset() {
   }
 }
 
-.popular-mixes {
+.popular-mixes, .pending-mixes {
   margin-bottom: 24px;
+
+  .mixes-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
 
   .mixes-title {
     font-size: 13px;
     font-weight: 600;
     color: var(--color-text-secondary);
-    margin-bottom: 12px;
   }
 
   .mix-chips {
@@ -213,6 +277,58 @@ function reset() {
       border-color: var(--color-primary);
       color: var(--color-primary);
     }
+  }
+}
+
+.pending-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pending-card {
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 12px;
+  
+  .pending-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+  }
+  
+  .pending-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+  
+  .pending-desc {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin-top: 8px;
+  }
+}
+
+.vote-btn {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    border-color: var(--color-primary);
+  }
+  
+  &.active {
+    background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
   }
 }
 

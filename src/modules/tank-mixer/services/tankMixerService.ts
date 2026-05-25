@@ -10,26 +10,102 @@ export interface PopularMix {
   id: string
   name: string
   products: string[]
+  status?: string
+  description?: string
+  votes_count?: number
+  author_id?: string
 }
 
 import { supabase } from '@/api/supabase'
 
 export class TankMixerService {
-  static async getPopularMixes(): Promise<PopularMix[]> {
+  static async getMixes(status: 'approved' | 'pending' = 'approved'): Promise<PopularMix[]> {
     try {
       const { data, error } = await supabase
         .from('popular_mixes')
         .select('*')
-        .order('sort_order', { ascending: true })
+        .eq('status', status)
+        .order('sort_order', { ascending: true, nullsFirst: false })
+        .order('votes_count', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Error fetching popular mixes:', error)
+        console.error(`Error fetching ${status} mixes:`, error)
         return []
       }
 
       return data as PopularMix[]
     } catch (e) {
-      console.error('Unexpected error fetching popular mixes:', e)
+      console.error(`Unexpected error fetching ${status} mixes:`, e)
+      return []
+    }
+  }
+
+  static async suggestMix(name: string, description: string, products: string[]): Promise<boolean> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return false
+
+      const { error } = await supabase
+        .from('popular_mixes')
+        .insert({
+          name,
+          description,
+          products,
+          author_id: user.id,
+          status: 'pending'
+        })
+
+      if (error) {
+        console.error('Error suggesting mix:', error)
+        return false
+      }
+      return true
+    } catch (e) {
+      console.error('Unexpected error suggesting mix:', e)
+      return false
+    }
+  }
+
+  static async toggleVote(mixId: string): Promise<boolean> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return false
+
+      const { data, error } = await supabase.rpc('toggle_mix_vote', {
+        p_mix_id: mixId,
+        p_user_id: user.id
+      })
+
+      if (error) {
+        console.error('Error toggling mix vote:', error)
+        return false
+      }
+      return !!data
+    } catch (e) {
+      console.error('Unexpected error toggling mix vote:', e)
+      return false
+    }
+  }
+
+  static async getUserVotes(): Promise<string[]> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return []
+
+      const { data, error } = await supabase
+        .from('mix_votes')
+        .select('mix_id')
+        .eq('user_id', user.id)
+
+      if (error) {
+        console.error('Error fetching user votes:', error)
+        return []
+      }
+      
+      return data.map((v: any) => v.mix_id)
+    } catch (e) {
+      console.error('Unexpected error fetching user votes:', e)
       return []
     }
   }
