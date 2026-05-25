@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ProductItem } from '@/modules/products'
-import { TankMixerService, type MixCheckResult } from '../services/tankMixerService'
+import { TankMixerService, type MixCheckResult, type PopularMix } from '../services/tankMixerService'
 import { Beaker, AlertTriangle, CheckCircle, XCircle } from 'lucide-vue-next'
 import FpMobilePicker from '@/design-system/components/FpMobilePicker.vue'
+import FpSpinner from '@/design-system/components/FpSpinner.vue'
 
 const props = defineProps<{
   products: ProductItem[]
@@ -12,6 +13,17 @@ const props = defineProps<{
 const selectedProduct1 = ref<ProductItem | null>(null)
 const selectedProduct2 = ref<ProductItem | null>(null)
 const selectedProduct3 = ref<ProductItem | null>(null)
+
+const popularMixes = ref<PopularMix[]>([])
+const loadingMixes = ref(true)
+
+onMounted(async () => {
+  try {
+    popularMixes.value = await TankMixerService.getPopularMixes()
+  } finally {
+    loadingMixes.value = false
+  }
+})
 
 const result = computed<MixCheckResult | null>(() => {
   const selected = [selectedProduct1.value, selectedProduct2.value, selectedProduct3.value].filter(Boolean) as ProductItem[]
@@ -28,6 +40,15 @@ const pickerItems = computed(() => {
   }))
 })
 
+
+
+function applyMix(mixIds: string[]) {
+  reset()
+  if (mixIds[0]) selectedProduct1.value = props.products.find(p => p.id === mixIds[0]) || null
+  if (mixIds[1]) selectedProduct2.value = props.products.find(p => p.id === mixIds[1]) || null
+  if (mixIds[2]) selectedProduct3.value = props.products.find(p => p.id === mixIds[2]) || null
+}
+
 function reset() {
   selectedProduct1.value = null
   selectedProduct2.value = null
@@ -43,6 +64,21 @@ function reset() {
       </div>
       <h2>Конструктор баковых смесей</h2>
       <p>Проверьте, можно ли смешивать препараты в одном опрыскивателе</p>
+    </div>
+
+    <div class="popular-mixes">
+      <div class="mixes-title">Популярные рецепты:</div>
+      <div v-if="loadingMixes" style="display: flex; justify-content: center; padding: 8px 0;">
+        <FpSpinner size="md" />
+      </div>
+      <div v-else-if="popularMixes.length > 0" class="mix-chips">
+        <button v-for="(mix, i) in popularMixes" :key="i" class="mix-chip" @click="applyMix(mix.products)">
+          {{ mix.name }}
+        </button>
+      </div>
+      <div v-else style="font-size: 13px; color: var(--color-text-tertiary);">
+        Нет доступных рецептов
+      </div>
     </div>
 
     <div class="mixer-selectors">
@@ -142,6 +178,41 @@ function reset() {
     font-size: 14px;
     color: var(--color-text-secondary);
     margin: 0;
+  }
+}
+
+.popular-mixes {
+  margin-bottom: 24px;
+
+  .mixes-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: 12px;
+  }
+
+  .mix-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .mix-chip {
+    padding: 6px 12px;
+    background: var(--color-surface-hover);
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
   }
 }
 

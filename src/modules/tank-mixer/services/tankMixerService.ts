@@ -6,7 +6,34 @@ export interface MixCheckResult {
   message: string
 }
 
+export interface PopularMix {
+  id: string
+  name: string
+  products: string[]
+}
+
+import { supabase } from '@/api/supabase'
+
 export class TankMixerService {
+  static async getPopularMixes(): Promise<PopularMix[]> {
+    try {
+      const { data, error } = await supabase
+        .from('popular_mixes')
+        .select('*')
+        .order('sort_order', { ascending: true })
+
+      if (error) {
+        console.error('Error fetching popular mixes:', error)
+        return []
+      }
+
+      return data as PopularMix[]
+    } catch (e) {
+      console.error('Unexpected error fetching popular mixes:', e)
+      return []
+    }
+  }
+
   static getGroup(productId: string): ProductGroup {
     return PRODUCT_GROUPS[productId] || 'other'
   }
