@@ -436,7 +436,7 @@ async function logout() {
     <div class="section">
       <div class="section-title">Приложение</div>
       <div class="settings-card">
-        <div class="setting-row clickable" @click="router.push('/changelog')">
+        <div class="setting-row clickable" @click="router.push('/about')">
           <div class="setting-label">
             <FileText :size="16" class="setting-icon" />
             Что нового
