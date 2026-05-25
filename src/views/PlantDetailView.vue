@@ -5,6 +5,8 @@ import { ArrowLeft, Plus, Bookmark, BookmarkCheck, Sparkles, RefreshCw, ChevronL
 import { PlantService, type Plant, type PlantCare, type PlantSecret } from '@/modules/plants/services/PlantService'
 import { authStore } from '@/modules/auth/store/authStore'
 import FpPaywallModal from '@/design-system/components/FpPaywallModal.vue'
+import { helpArticles } from '@/modules/help/data/helpData'
+import { TestTube, Sprout, ShieldAlert, RefreshCw, Leaf, Droplets, BookOpen } from 'lucide-vue-next'
 
 const showPaywall = ref(false)
 
@@ -19,6 +21,19 @@ const activeTab = ref<'care' | 'secrets' | 'facts' | 'myths'>('care')
 const filteredSecrets = computed(() => secretsList.value.filter(s => s.secret_type !== 'fact' && s.secret_type !== 'myth'))
 const filteredFacts = computed(() => secretsList.value.filter(s => s.secret_type === 'fact'))
 const filteredMyths = computed(() => secretsList.value.filter(s => s.secret_type === 'myth'))
+
+const relatedArticles = computed(() => {
+  if (!plant.value) return []
+  return helpArticles.filter(a => a.relatedPlants?.includes(plant.value!.id))
+})
+
+const getIcon = (iconName?: string) => {
+    if (!iconName) return BookOpen
+    const icons: Record<string, any> = {
+        TestTube, Sprout, ShieldAlert, RefreshCw, Leaf, Droplets, BookOpen
+    }
+    return icons[iconName] || BookOpen
+}
 
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -419,6 +434,19 @@ function getDiffLabel(diff?: string): string {
                 <div class="secret-content">
                   <div class="secret-title">{{ secret.title }}</div>
                   <div class="secret-desc">{{ secret.description }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="relatedArticles.length > 0" class="related-articles-section">
+              <div class="section-title">Полезные статьи</div>
+              <div v-for="article in relatedArticles" :key="article.id" class="related-article-card" @click="router.push(`/help/${article.id}`)">
+                <div class="article-icon">
+                  <component :is="getIcon(article.icon)" :size="20" />
+                </div>
+                <div class="article-text">
+                  <div class="article-title">{{ article.title }}</div>
+                  <div class="article-category">{{ article.category }}</div>
                 </div>
               </div>
             </div>
@@ -987,5 +1015,61 @@ function getDiffLabel(diff?: string): string {
 
 .mb-8 {
   margin-bottom: 8px;
+}
+
+/* ── RELATED ARTICLES ── */
+.related-articles-section {
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.related-article-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover, &:active {
+    background: var(--color-surface-hover);
+    transform: scale(0.98);
+  }
+}
+
+.article-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.article-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.article-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.article-category {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
 }
 </style>

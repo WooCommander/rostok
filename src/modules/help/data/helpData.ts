@@ -5,6 +5,7 @@ export interface HelpArticle {
     icon: string // Lucide icon name
     content: string // HTML format
     tags: string[]
+    relatedPlants?: string[] // IDs of plants that this article is relevant to
 }
 
 export const helpArticles: HelpArticle[] = [
@@ -14,6 +15,7 @@ export const helpArticles: HelpArticle[] = [
         category: 'Почвоведение',
         icon: 'TestTube',
         tags: ['Почва', 'pH', 'Раскисление'],
+        relatedPlants: ['tomato', 'pepper', 'eggplant', 'cabbage', 'beetroot', 'carrot'],
         content: `
             <h3>Почему важна кислотность?</h3>
             <p>Большинство огородных культур предпочитают нейтральную или слабокислую почву (pH 6.0 - 7.0). Если почва слишком кислая, многие элементы питания (особенно фосфор и калий) переходят в недоступную для растений форму. Растения голодают даже при регулярных подкормках.</p>
@@ -37,6 +39,7 @@ export const helpArticles: HelpArticle[] = [
         category: 'Удобрения',
         icon: 'Sprout',
         tags: ['Удобрения', 'Азот', 'Фосфор', 'Калий'],
+        relatedPlants: ['tomato', 'pepper', 'cucumber', 'zucchini', 'pumpkin', 'cabbage', 'strawberry', 'raspberry', 'apple', 'pear', 'cherry', 'plum', 'grape'],
         content: `
             <p>Для нормального роста растениям нужны три главных макроэлемента. Их легко запомнить по правилу "Вершки - Корешки - Плоды":</p>
             <h3>Азот (N) — "Вершки" 🌿</h3>
@@ -61,6 +64,7 @@ export const helpArticles: HelpArticle[] = [
         category: 'Защита растений',
         icon: 'ShieldAlert',
         tags: ['Томаты', 'Болезни', 'Грибок'],
+        relatedPlants: ['tomato', 'potato', 'eggplant', 'pepper'],
         content: `
             <h3>Что такое фитофтора?</h3>
             <p>Это грибкоподобный организм (оомицет), споры которого живут в почве. Развивается при: высокой влажности, резких перепадах дневных и ночных температур (холодные ночи) и обильных росах.</p>
@@ -84,6 +88,7 @@ export const helpArticles: HelpArticle[] = [
         category: 'Общая агрономия',
         icon: 'RefreshCw',
         tags: ['Планирование', 'Почва', 'Севооборот'],
+        relatedPlants: ['tomato', 'potato', 'cucumber', 'cabbage', 'onion', 'garlic', 'carrot', 'beetroot', 'strawberry'],
         content: `
             <h3>Что такое севооборот и зачем он нужен?</h3>
             <p>Севооборот — это чередование культур на грядках год за годом. Если сажать картошку или помидоры на одно и то же место каждый год, почва истощается, а в ней накапливаются специфические болезни (фитофтора) и вредители (колорадский жук, нематода).</p>
@@ -109,6 +114,7 @@ export const helpArticles: HelpArticle[] = [
         category: 'Секреты урожая',
         icon: 'Leaf',
         tags: ['Мульча', 'Влага', 'Почва'],
+        relatedPlants: ['tomato', 'cucumber', 'strawberry', 'raspberry', 'apple', 'pear', 'cherry', 'plum'],
         content: `
             <h3>Зачем мульчировать грядки?</h3>
             <p>Голая земля в природе — это открытая рана. Она пересыхает, трескается, перегревается и размывается дождями. Мульчирование решает 5 главных проблем огородника:</p>
@@ -133,6 +139,7 @@ export const helpArticles: HelpArticle[] = [
         category: 'Общая агрономия',
         icon: 'Droplets',
         tags: ['Полив', 'Уход'],
+        relatedPlants: ['tomato', 'cucumber', 'pepper', 'eggplant', 'zucchini', 'cabbage'],
         content: `
             <h3>Главные ошибки при поливе</h3>
             <ul>
