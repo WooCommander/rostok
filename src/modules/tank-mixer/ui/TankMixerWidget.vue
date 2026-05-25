@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { ProductItem } from '@/modules/products'
 import { TankMixerService, type MixCheckResult } from '../services/tankMixerService'
 import { Beaker, AlertTriangle, CheckCircle, XCircle } from 'lucide-vue-next'
+import FpMobilePicker from '@/design-system/components/FpMobilePicker.vue'
 
 const props = defineProps<{
   products: ProductItem[]
@@ -19,30 +20,18 @@ const result = computed<MixCheckResult | null>(() => {
   return TankMixerService.checkMultipleCompatibility(selected)
 })
 
-function onSelectProduct1(e: Event) {
-  const target = e.target as HTMLSelectElement
-  const p = props.products.find(x => x.id === target.value) || null
-  selectedProduct1.value = p
-}
-
-function onSelectProduct2(e: Event) {
-  const target = e.target as HTMLSelectElement
-  const p = props.products.find(x => x.id === target.value) || null
-  selectedProduct2.value = p
-}
-
-function onSelectProduct3(e: Event) {
-  const target = e.target as HTMLSelectElement
-  const p = props.products.find(x => x.id === target.value) || null
-  selectedProduct3.value = p
-}
+const pickerItems = computed(() => {
+  return props.products.map(p => ({
+    id: p.id,
+    name: `${p.icon} ${p.name}`,
+    originalProduct: p
+  }))
+})
 
 function reset() {
   selectedProduct1.value = null
   selectedProduct2.value = null
   selectedProduct3.value = null
-  const selects = document.querySelectorAll('.mixer-select')
-  selects.forEach(s => (s as HTMLSelectElement).value = '')
 }
 </script>
 
@@ -58,37 +47,40 @@ function reset() {
 
     <div class="mixer-selectors">
       <div class="select-group">
-        <label>Препарат 1</label>
-        <select class="mixer-select" @change="onSelectProduct1">
-          <option value="">-- Выберите препарат --</option>
-          <option v-for="p in props.products" :key="'1-' + p.id" :value="p.id">
-            {{ p.icon }} {{ p.name }}
-          </option>
-        </select>
+        <FpMobilePicker
+          :model-value="selectedProduct1 ? `${selectedProduct1.icon} ${selectedProduct1.name}` : ''"
+          :items="pickerItems"
+          label="Препарат 1"
+          placeholder="-- Выберите препарат --"
+          variant="bordered"
+          @select="(item: any) => selectedProduct1 = item.originalProduct"
+        />
       </div>
 
       <div class="plus-sign">+</div>
 
       <div class="select-group">
-        <label>Препарат 2</label>
-        <select class="mixer-select" @change="onSelectProduct2">
-          <option value="">-- Выберите препарат --</option>
-          <option v-for="p in props.products" :key="'2-' + p.id" :value="p.id">
-            {{ p.icon }} {{ p.name }}
-          </option>
-        </select>
+        <FpMobilePicker
+          :model-value="selectedProduct2 ? `${selectedProduct2.icon} ${selectedProduct2.name}` : ''"
+          :items="pickerItems"
+          label="Препарат 2"
+          placeholder="-- Выберите препарат --"
+          variant="bordered"
+          @select="(item: any) => selectedProduct2 = item.originalProduct"
+        />
       </div>
 
       <div class="plus-sign">+</div>
 
       <div class="select-group">
-        <label>Препарат 3 (необязательно)</label>
-        <select class="mixer-select" @change="onSelectProduct3">
-          <option value="">-- Выберите препарат --</option>
-          <option v-for="p in props.products" :key="'3-' + p.id" :value="p.id">
-            {{ p.icon }} {{ p.name }}
-          </option>
-        </select>
+        <FpMobilePicker
+          :model-value="selectedProduct3 ? `${selectedProduct3.icon} ${selectedProduct3.name}` : ''"
+          :items="pickerItems"
+          label="Препарат 3 (необязательно)"
+          placeholder="-- Выберите препарат --"
+          variant="bordered"
+          @select="(item: any) => selectedProduct3 = item.originalProduct"
+        />
       </div>
     </div>
 
@@ -178,21 +170,7 @@ function reset() {
   }
 }
 
-.mixer-select {
-  width: 100%;
-  padding: 12px 16px;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  color: var(--color-text-primary);
-  font-size: 15px;
-  outline: none;
-  transition: border-color 0.2s;
 
-  &:focus {
-    border-color: var(--color-primary);
-  }
-}
 
 .plus-sign {
   font-size: 24px;

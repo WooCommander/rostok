@@ -85,7 +85,7 @@ watch(searchQuery, (q) => {
         <div class="picker-trigger" @click="openPicker">
             <div v-if="label" class="trigger-label" :class="{ 'has-value': modelValue || variant === 'bordered' }">{{
                 label }}</div>
-            <div class="trigger-value">{{ modelValue || (label && variant !== 'bordered' ? '' : placeholder || '\u00A0') }}</div>
+            <div class="trigger-value" :class="{ 'is-placeholder': !modelValue }">{{ modelValue || (label && variant !== 'bordered' ? '' : placeholder || '\u00A0') }}</div>
             <div class="chevron">
                 <ChevronDown :size="20" />
             </div>
@@ -176,6 +176,11 @@ watch(searchQuery, (q) => {
     overflow: hidden;
     text-overflow: ellipsis;
     padding-right: 24px;
+
+    &.is-placeholder {
+        color: var(--color-text-secondary);
+        font-weight: 400;
+    }
 }
 
 .chevron {
@@ -282,6 +287,7 @@ watch(searchQuery, (q) => {
         padding: 4px 12px 4px 14px;
         flex-direction: column;
         justify-content: center;
+        align-items: flex-start;
         gap: 1px;
         transition: border-color 0.2s;
 
@@ -303,6 +309,10 @@ watch(searchQuery, (q) => {
         font-size: 15px;
         font-weight: 600;
         padding-right: 32px;
+
+        &.is-placeholder {
+            font-weight: 400;
+        }
     }
 
     .chevron {
