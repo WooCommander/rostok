@@ -80,6 +80,16 @@ const routes = [
         path: '/mixer',
         name: 'TankMixer',
         component: () => import('@/views/TankMixerView.vue')
+    },
+    {
+        path: '/help',
+        name: 'Help',
+        component: () => import('@/modules/help/views/HelpView.vue')
+    },
+    {
+        path: '/help/:id',
+        name: 'Article',
+        component: () => import('@/modules/help/views/ArticleView.vue')
     }
 ]
 

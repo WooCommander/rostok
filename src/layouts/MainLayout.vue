@@ -6,7 +6,7 @@ import { authStore } from '@/modules/auth/store/authStore'
 import { changelog } from '@/data/changelog'
 import {
   Home, Leaf, User, ClipboardList, Menu, X,
-  LogOut, Sun, Moon, Plus, ArrowUp, ShieldAlert, Calculator, Info, Beaker
+  LogOut, Sun, Moon, Plus, ArrowUp, ShieldAlert, Calculator, Info, Beaker, BookOpen
 } from 'lucide-vue-next'
 import { FpHaptics } from '@/shared/lib/haptics'
 
@@ -249,12 +249,13 @@ const handleLogout = async () => {
 
           <div class="nav-group">
             <span class="nav-label">Разное</span>
+            <a class="drawer-link" :class="{ active: currentPath.startsWith('/help') }"
+              @click.prevent="navigate('/help')">
+              <BookOpen :size="20" class="link-icon" /> База знаний
+            </a>
             <a class="drawer-link" :class="{ active: currentPath === '/about' }" @click.prevent="navigate('/about')">
               <Info :size="20" class="link-icon" /> О приложении
             </a>
-            <!-- <a class="drawer-link" :class="{ active: currentPath === '/design-system' }" @click.prevent="navigate('/design-system')">
-              <Palette :size="20" class="link-icon" /> Дизайн-система
-            </a> -->
           </div>
         </div>
 
