@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { helpArticles } from '../data/helpData'
-import { ArrowLeft, Share2, BookMarked, TestTube, Sprout, ShieldAlert, RefreshCw, Leaf, Droplets, BookOpen } from 'lucide-vue-next'
+import { Share2, BookMarked, TestTube, Sprout, ShieldAlert, RefreshCw, Leaf, Droplets, BookOpen } from 'lucide-vue-next'
 import FpBackButton from '@/design-system/components/FpBackButton.vue'
 
 const route = useRoute()

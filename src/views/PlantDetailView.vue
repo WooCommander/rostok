@@ -6,7 +6,7 @@ import { PlantService, type Plant, type PlantCare, type PlantSecret } from '@/mo
 import { authStore } from '@/modules/auth/store/authStore'
 import FpPaywallModal from '@/design-system/components/FpPaywallModal.vue'
 import { helpArticles } from '@/modules/help/data/helpData'
-import { TestTube, Sprout, ShieldAlert, RefreshCw, Leaf, Droplets, BookOpen } from 'lucide-vue-next'
+import { TestTube, Sprout, ShieldAlert, Leaf, Droplets, BookOpen } from 'lucide-vue-next'
 
 const showPaywall = ref(false)
 
