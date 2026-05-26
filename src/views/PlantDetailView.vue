@@ -201,6 +201,11 @@ function onTouchMove(e: TouchEvent) {
   const deltaX = currentX - touchStartX.value
   const deltaY = currentY - touchStartY.value
 
+  // Если свайп явно горизонтальный, предотвращаем стандартное поведение браузера
+  if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+    if (e.cancelable) e.preventDefault()
+  }
+
   // Pull to refresh: если мы на самом верху страницы и тянем вниз
   if (window.scrollY <= 0 && deltaY > 0 && Math.abs(deltaY) > Math.abs(deltaX)) {
     if (e.cancelable) e.preventDefault()
@@ -475,6 +480,8 @@ function getDiffLabel(diff?: string): string {
   background: var(--color-background);
   position: relative;
   overflow-x: hidden;
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
 }
 
 /* ── PULL TO REFRESH BANNER ── */

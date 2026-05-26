@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
+import { useNotify } from '@/composables/useNotify'
 import MainLayout from '@/layouts/MainLayout.vue'
 import FpNotificationContainer from '@/design-system/components/FpNotificationContainer.vue'
 import AppUpdateProgressModal from '@/design-system/components/AppUpdateProgressModal.vue'
@@ -8,17 +10,40 @@ import { DeviceService } from '@/app/services/DeviceService'
 import { AppUpdateService, type AppUpdateMeta } from '@/app/services/AppUpdateService'
 import { changelog } from '@/data/changelog'
 import { PushNotificationService } from '@/modules/notifications'
+import { App as CapacitorApp } from '@capacitor/app'
 
+const router = useRouter()
 const { initTheme } = useTheme()
+const { notify } = useNotify()
 
 const showUpdateModal = ref(false)
 const updateMeta = ref<AppUpdateMeta | null>(null)
 const currentVersion = changelog[0]?.version || '1.2.0'
 
+let backPressCount = 0
+let backPressTimeout: ReturnType<typeof setTimeout> | null = null
+
 onMounted(async () => {
   initTheme()
   DeviceService.initStatusBar()
   PushNotificationService.scheduleActiveReminders()
+  
+  CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+    if (window.history.state && window.history.state.back) {
+      router.back()
+    } else {
+      backPressCount++
+      if (backPressCount === 1) {
+        notify('Свайпните еще раз, чтобы выйти', 'info', 2000)
+        backPressTimeout = setTimeout(() => {
+          backPressCount = 0
+        }, 2000)
+      } else {
+        if (backPressTimeout) clearTimeout(backPressTimeout)
+        CapacitorApp.exitApp()
+      }
+    }
+  })
   
   const meta = await AppUpdateService.checkForUpdates(currentVersion)
   if (meta) {
