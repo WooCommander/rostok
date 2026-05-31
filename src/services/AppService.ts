@@ -1,12 +1,10 @@
 import { globalStore } from '@/store/globalStore'
-// Will import module services here
 import { AuthService } from '@/modules/auth/services/AuthService'
+import { ProfileService } from '@/modules/profile/services/ProfileService'
 
 class GlobalService {
-    // Expose module services
     public readonly auth = AuthService
 
-    // Global State helpers
     public get isLoading() {
         return globalStore.isAppLoading.value
     }
@@ -18,6 +16,10 @@ class GlobalService {
     public handleError(error: unknown) {
         console.error('Global Error:', error)
         globalStore.setError(String(error))
+    }
+
+    public addXp(amount: number): void {
+        ProfileService.addXp(amount)
     }
 }
 
