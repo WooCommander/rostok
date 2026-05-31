@@ -1,4 +1,4 @@
-import { AppService } from '@/app/services/AppService'
+import { AppService } from '@/services/AppService'
 
 export const QuizService = {
   handleCorrectAnswer(questionId: number): void {

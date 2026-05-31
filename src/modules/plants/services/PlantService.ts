@@ -1,3 +1,4 @@
+import { plantRepository } from '@/api/repositories'
 import { supabase } from '@/api/supabase'
 import { plantSecretsData } from '../data/plantSecretsData'
 import { SEED_PLANTS, SEED_CARE } from '../data/plantsSeedData'
@@ -63,13 +64,7 @@ export const PlantService = {
   async getAll(): Promise<Plant[]> {
     let remotePlants: Plant[] = []
     try {
-      const { data, error } = await supabase
-        .from('plants')
-        .select('*')
-        .order('name')
-      if (!error && data) {
-        remotePlants = data
-      }
+      remotePlants = await plantRepository.findAll({ orderBy: 'name', order: 'asc' })
     } catch (_) { }
 
     const map = new Map<string, Plant>()

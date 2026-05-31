@@ -1,3 +1,4 @@
+import { treatmentRepository } from '@/api/repositories'
 import { supabase } from '@/api/supabase'
 
 export interface TreatedPlant {
@@ -38,77 +39,42 @@ export interface NewTreatmentEntry {
 
 export const JournalService = {
   async getAll(): Promise<TreatmentEntry[]> {
-    const { data, error } = await supabase
-      .from('treatment_log')
-      .select('*, plant:plants(name, emoji), user_plant:user_plants(nickname, location_note)')
-      .order('treated_at', { ascending: false })
-      .limit(50)
-    if (error) throw error
-    return data || []
+    return treatmentRepository.findAll({ 
+      orderBy: 'treated_at', 
+      order: 'desc', 
+      limit: 50 
+    })
   },
 
   async getById(id: string): Promise<TreatmentEntry> {
-    const { data, error } = await supabase
-      .from('treatment_log')
-      .select('*, plant:plants(name, emoji), user_plant:user_plants(nickname, location_note)')
-      .eq('id', id)
-      .single()
-    if (error) throw error
-    return data
+    const result = await treatmentRepository.findById(id)
+    if (!result) throw new Error('Treatment not found')
+    return result
   },
 
   async add(entries: NewTreatmentEntry | NewTreatmentEntry[]): Promise<TreatmentEntry | TreatmentEntry[]> {
     const { data: { user } } = await supabase.auth.getUser()
+    if (!user?.id) throw new Error('User not authenticated')
+
     const isArray = Array.isArray(entries)
-    const itemsToInsert = isArray 
-      ? entries.map(e => ({ ...e, user_id: user?.id })) 
-      : [{ ...entries, user_id: user?.id }]
-
-    const { data, error } = await supabase
-      .from('treatment_log')
-      .insert(itemsToInsert)
-      .select('*, plant:plants(name, emoji), user_plant:user_plants(nickname, location_note)')
     
-    if (error) throw error
-
-    // Публикуем в ленту сообщества (async, не блокируем)
-    try {
-      const { SocialService } = await import('@/modules/social/services/SocialService')
-      const items = Array.isArray(itemsToInsert) ? itemsToInsert : [itemsToInsert]
-      for (const entry of items) {
-        const plantData = entry.plants_data as { name: string; emoji: string; location_note?: string }[] | undefined
-        if (plantData && plantData.length > 0) {
-          for (const p of plantData) {
-            SocialService.publishActivity({
-              actionType: entry.care_type,
-              plantName: p.name,
-              plantEmoji: p.emoji,
-              locationLabel: p.location_note
-            })
-          }
-        }
+    if (isArray) {
+      const results = []
+      for (const entry of entries) {
+        const result = await treatmentRepository.createTreatment(user.id, entry)
+        results.push(result)
       }
-    } catch (_) { /* не критично */ }
-
-    return isArray ? data : data[0]
+      return results
+    } else {
+      return treatmentRepository.createTreatment(user.id, entries)
+    }
   },
 
   async update(id: string, entry: Partial<NewTreatmentEntry>): Promise<TreatmentEntry> {
-    const { data, error } = await supabase
-      .from('treatment_log')
-      .update(entry)
-      .eq('id', id)
-      .select('*, plant:plants(name, emoji), user_plant:user_plants(nickname, location_note)')
-      .single()
-    if (error) throw error
-    return data
+    return treatmentRepository.update(id, entry)
   },
 
   async remove(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('treatment_log')
-      .delete()
-      .eq('id', id)
-    if (error) throw error
+    return treatmentRepository.delete(id)
   }
 }
