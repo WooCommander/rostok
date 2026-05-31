@@ -224,6 +224,8 @@ async function sendComment() {
 <style scoped lang="scss">
 .community-view {
   padding: 16px 16px 32px;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .page-header {

@@ -157,9 +157,7 @@ const handleLogout = async () => {
     <main class="page-content">
       <div class="content-container">
         <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" :key="route.fullPath" />
-          </transition>
+          <component :is="Component" :key="route.fullPath" />
         </router-view>
       </div>
     </main>
