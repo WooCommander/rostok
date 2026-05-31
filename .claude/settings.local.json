@@ -9,7 +9,14 @@
       "Bash(./gradlew assembleDebug)",
       "Bash(\"/c/Program Files/Android/Android Studio/jbr/bin/java\" -version)",
       "Bash(npm uninstall @capgo/capacitor-updater)",
-      "Bash(npm run update-android)"
+      "Bash(npm run update-android)",
+      "Bash(rm -f \"C:\\Users\\User\\Documents\\projects\\rostok\\android\\app\\src\\androidTest\\java\\com\\getcapacitor\\myapp\\ExampleInstrumentedTest.java\")",
+      "Bash(rm -f \"C:\\Users\\User\\Documents\\projects\\rostok\\android\\app\\src\\test\\java\\com\\getcapacitor\\myapp\\ExampleUnitTest.java\")",
+      "Bash(rm -f \"C:\\Users\\User\\Documents\\projects\\rostok\\google_play_promo.md\")",
+      "Bash(rm -f \"C:\\Users\\User\\Documents\\projects\\rostok\\todo.md\")",
+      "Bash(rm -rf \"C:\\Users\\User\\Documents\\projects\\rostok\\android\\app\\src\\androidTest\")",
+      "Bash(rm -rf \"C:\\Users\\User\\Documents\\projects\\rostok\\android\\app\\src\\test\")",
+      "Bash(rm -rf \"C:\\Users\\User\\Documents\\projects\\rostok\\docs\")"
     ]
   }
 }

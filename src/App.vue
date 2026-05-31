@@ -28,7 +28,7 @@ onMounted(async () => {
   DeviceService.initStatusBar()
   PushNotificationService.scheduleActiveReminders()
   
-  CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+  CapacitorApp.addListener('backButton', () => {
     if (window.history.state && window.history.state.back) {
       router.back()
     } else {
