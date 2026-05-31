@@ -49,14 +49,7 @@ function checkScrollButtons() {
     const hasOverflow = container.scrollWidth > container.clientWidth
     canScrollLeft.value = hasOverflow && container.scrollLeft > 0
     canScrollRight.value = hasOverflow && container.scrollLeft < (container.scrollWidth - container.clientWidth - 1)
-    console.log('Scroll check:', { 
-      scrollWidth: container.scrollWidth, 
-      clientWidth: container.clientWidth, 
-      scrollLeft: container.scrollLeft,
-      hasOverflow,
-      canScrollLeft: canScrollLeft.value,
-      canScrollRight: canScrollRight.value 
-    })
+
   }
 }
 
