@@ -10,6 +10,7 @@ import { DeviceService } from '@/app/services/DeviceService'
 import { AppUpdateService, type AppUpdateMeta } from '@/app/services/AppUpdateService'
 import { changelog } from '@/data/changelog'
 import { PushNotificationService } from '@/modules/notifications'
+import { BillingService } from '@/modules/billing/services/BillingService'
 import { App as CapacitorApp } from '@capacitor/app'
 
 const router = useRouter()
@@ -27,6 +28,7 @@ onMounted(async () => {
   initTheme()
   DeviceService.initStatusBar()
   PushNotificationService.scheduleActiveReminders()
+  BillingService.init().catch(() => {})
   
   CapacitorApp.addListener('backButton', () => {
     if (window.history.state && window.history.state.back) {

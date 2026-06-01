@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Sparkles, ShieldCheck, Map, Users } from 'lucide-vue-next'
+import { ref } from 'vue'
+import { Sparkles, ShieldCheck, Map, Users, Loader2, RotateCcw } from 'lucide-vue-next'
 import FpBottomSheetModal from './FpBottomSheetModal.vue'
 import FpPremiumBadge from './FpPremiumBadge.vue'
+import { BillingService } from '@/modules/billing/services/BillingService'
 
 interface Props {
   modelValue: boolean
@@ -14,16 +16,48 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
+  (e: 'purchased'): void
 }>()
 
+const loading = ref(false)
+const restoring = ref(false)
+const errorMsg = ref('')
+
 function onClose() {
+  errorMsg.value = ''
   emit('update:modelValue', false)
 }
 
-function onUpgrade() {
-  // В будущем тут будет логика покупки
-  alert('Переход на страницу оплаты (демо)')
-  onClose()
+async function onUpgrade() {
+  loading.value = true
+  errorMsg.value = ''
+  try {
+    const result = await BillingService.purchase()
+    if (result.success) {
+      emit('purchased')
+      onClose()
+    } else if (!result.cancelled) {
+      errorMsg.value = result.error || 'Не удалось оформить подписку'
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+async function onRestore() {
+  restoring.value = true
+  errorMsg.value = ''
+  try {
+    const result = await BillingService.restore()
+    if (result.success) {
+      emit('purchased')
+      onClose()
+    } else {
+      errorMsg.value = result.error || 'Активных подписок не найдено'
+    }
+  } finally {
+    restoring.value = false
+  }
 }
 </script>
 
@@ -37,15 +71,15 @@ function onUpgrade() {
       <div class="paywall-icon-wrapper">
         <Sparkles :size="32" class="paywall-icon" />
       </div>
-      
+
       <h2 class="paywall-title">
         {{ props.featureName }} доступна в версии <FpPremiumBadge />
       </h2>
-      
+
       <p class="paywall-desc">
         Оформите подписку Premium, чтобы разблокировать эту и многие другие полезные функции для вашего умного огорода.
       </p>
-      
+
       <div class="premium-features">
         <div class="feature-item">
           <ShieldCheck :size="20" class="feature-icon" />
@@ -57,14 +91,23 @@ function onUpgrade() {
         </div>
         <div class="feature-item">
           <Users :size="20" class="feature-icon" />
-          <span>Безлимитные советы и комментарии</span>
+          <span>Безлимитные растения и напоминания</span>
         </div>
       </div>
-      
-      <button class="upgrade-btn" @click="onUpgrade">
-        Перейти на Premium за 199 ₽/мес
+
+      <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
+
+      <button class="upgrade-btn" @click="onUpgrade" :disabled="loading || restoring">
+        <Loader2 v-if="loading" :size="18" class="spin" />
+        <span v-else>Оформить Premium — {{ BillingService.getPriceLabel() }}</span>
       </button>
-      
+
+      <button v-if="BillingService.isNative()" class="restore-btn" @click="onRestore" :disabled="loading || restoring">
+        <Loader2 v-if="restoring" :size="14" class="spin" />
+        <RotateCcw v-else :size="14" />
+        Восстановить покупку
+      </button>
+
       <button class="cancel-btn" @click="onClose">
         Не сейчас
       </button>
@@ -150,11 +193,34 @@ function onUpgrade() {
   box-shadow: 0 4px 12px rgba(251, 133, 0, 0.3);
   transition: transform 0.15s, box-shadow 0.15s;
   margin-bottom: 12px;
-  
-  &:active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  &:disabled { opacity: 0.7; cursor: not-allowed; }
+  &:not(:disabled):active {
     transform: scale(0.98);
     box-shadow: 0 2px 6px rgba(251, 133, 0, 0.2);
   }
+}
+
+.restore-btn {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 
 .cancel-btn {
@@ -166,9 +232,24 @@ function onUpgrade() {
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  
+
   &:hover {
     color: var(--color-text-primary);
   }
 }
+
+.error-msg {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(231, 111, 81, 0.1);
+  border: 1px solid rgba(231, 111, 81, 0.3);
+  border-radius: var(--radius-md);
+  color: #E76F51;
+  font-size: 13px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.8s linear infinite; }
 </style>
