@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { Camera, UploadCloud, Trash2, Plus } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { Camera, UploadCloud, Trash2, Plus, History } from 'lucide-vue-next'
 import FpButton from '@/design-system/components/FpButton.vue'
 import FpInput from '@/design-system/components/FpInput.vue'
 import FpNumberInput from '@/design-system/components/FpNumberInput.vue'
 import ConfirmDialog from '@/shared/ui/ConfirmDialog.vue'
 import { PlantService, type UserPlant } from '../services/PlantService'
+
+const router = useRouter()
 
 interface Props {
   modelValue: boolean
@@ -107,8 +110,9 @@ function handleDelete() {
               <span>{{ uploadingPhoto ? 'Загрузка...' : (plantData.photo_url ? 'Заменить фото' : 'Загрузить фото') }}</span>
             </button>
           </div>
-          <button class="timelapse-btn" v-if="plantData.photo_url" @click="emit('open-timelapse')">
-            📸 История роста (Таймлапс)
+          <button class="timeline-btn" @click="close(); router.push(`/garden/${plantData.id}`)">
+            <History :size="16" />
+            История грядки
           </button>
           <input type="file" accept="image/*" ref="fileInputRef" style="display:none" @change="onPhotoSelected" />
         </div>
@@ -210,11 +214,11 @@ function handleDelete() {
   &:hover:not(:disabled) { background: rgba(0,0,0,0.8); }
   &:disabled { opacity: 0.7; cursor: not-allowed; }
 }
-.timelapse-btn {
-  width: 100%; background: var(--color-surface); border: 1px solid var(--color-border); padding: 10px;
-  border-radius: var(--radius-md); font-size: 14px; font-weight: 600; color: var(--color-text-primary);
-  cursor: pointer; transition: all 0.15s; display: flex; justify-content: center; gap: 8px;
-  &:hover { background: var(--color-surface-hover); border-color: var(--color-primary); color: var(--color-primary); }
+.timeline-btn {
+  width: 100%; background: rgba(45, 106, 79, 0.08); border: 1px solid rgba(45, 106, 79, 0.25); padding: 11px;
+  border-radius: var(--radius-md); font-size: 14px; font-weight: 600; color: var(--color-primary);
+  cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px;
+  &:hover { background: rgba(45, 106, 79, 0.15); border-color: var(--color-primary); }
 }
 
 .modal-extra-actions {

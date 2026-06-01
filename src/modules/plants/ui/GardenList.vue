@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, ChevronRight, Trash2 } from 'lucide-vue-next'
+import { Plus, ChevronRight, Trash2, History } from 'lucide-vue-next'
 import { type Plant, type UserPlant } from '../services/PlantService'
 import FpEmptyState from '@/design-system/components/FpEmptyState.vue'
 
@@ -112,39 +112,46 @@ function formatDateDisplay(d?: string | null): string {
           </div>
 
           <div class="group-instances-grid">
-            <div v-for="(uPlant, idx) in group.instances" :key="uPlant.id" class="instance-card"
-              @click="emit('edit-instance', uPlant, $event)">
-              <div v-if="uPlant.photo_url" class="inst-photo"
-                :style="{ backgroundImage: `url(${uPlant.photo_url})` }"></div>
-              <div v-else class="inst-icon-placeholder">🌱</div>
-              <div class="inst-info">
-                <div class="inst-head-row">
-                  <h4 class="inst-nickname">{{ uPlant.nickname || `${group.plant.name} #${idx + 1}` }}</h4>
-                </div>
-                <div class="inst-tags">
-                  <span v-if="uPlant.location_note" class="tag-loc">📍 {{ uPlant.location_note }}</span>
-                  <span v-if="uPlant.planted_at" class="tag-date">📅 {{ formatDateDisplay(uPlant.planted_at) }}</span>
-                  <span v-if="!uPlant.location_note && !uPlant.planted_at" class="tag-empty">✏️ Указать
-                    сорт/грядку</span>
-                </div>
-
-                <div v-if="getHarvestProgress(uPlant)" class="harvest-progress-container">
-                  <div class="harvest-bar-bg">
-                    <div class="harvest-bar-fill" :class="getHarvestProgress(uPlant)!.status"
-                      :style="{ width: getHarvestProgress(uPlant)!.percent + '%' }"></div>
+            <div v-for="(uPlant, idx) in group.instances" :key="uPlant.id" class="instance-card">
+              <div class="inst-main" @click="emit('edit-instance', uPlant, $event)">
+                <div v-if="uPlant.photo_url" class="inst-photo"
+                  :style="{ backgroundImage: `url(${uPlant.photo_url})` }"></div>
+                <div v-else class="inst-icon-placeholder">🌱</div>
+                <div class="inst-info">
+                  <div class="inst-head-row">
+                    <h4 class="inst-nickname">{{ uPlant.nickname || `${group.plant.name} #${idx + 1}` }}</h4>
                   </div>
-                  <div class="harvest-info">
-                    <span v-if="getHarvestProgress(uPlant)!.status === 'ready'" class="harvest-ready">🍅 Урожай
-                      готов!</span>
-                    <span v-else-if="getHarvestProgress(uPlant)!.status === 'warning'" class="harvest-warning">⚠️ {{
-                      getHarvestProgress(uPlant)!.remaining }} дн. (переходите на био!)</span>
-                    <span v-else>До сбора: {{ getHarvestProgress(uPlant)!.remaining }} дн.</span>
+                  <div class="inst-tags">
+                    <span v-if="uPlant.location_note" class="tag-loc">📍 {{ uPlant.location_note }}</span>
+                    <span v-if="uPlant.planted_at" class="tag-date">📅 {{ formatDateDisplay(uPlant.planted_at) }}</span>
+                    <span v-if="!uPlant.location_note && !uPlant.planted_at" class="tag-empty">✏️ Указать сорт/грядку</span>
+                  </div>
+
+                  <div v-if="getHarvestProgress(uPlant)" class="harvest-progress-container">
+                    <div class="harvest-bar-bg">
+                      <div class="harvest-bar-fill" :class="getHarvestProgress(uPlant)!.status"
+                        :style="{ width: getHarvestProgress(uPlant)!.percent + '%' }"></div>
+                    </div>
+                    <div class="harvest-info">
+                      <span v-if="getHarvestProgress(uPlant)!.status === 'ready'" class="harvest-ready">🍅 Урожай готов!</span>
+                      <span v-else-if="getHarvestProgress(uPlant)!.status === 'warning'" class="harvest-warning">⚠️ {{ getHarvestProgress(uPlant)!.remaining }} дн. (переходите на био!)</span>
+                      <span v-else>До сбора: {{ getHarvestProgress(uPlant)!.remaining }} дн.</span>
+                    </div>
                   </div>
                 </div>
               </div>
-              <button class="delete-inst-btn" @click.stop="emit('delete-instance', uPlant.id)" title="Удалить">
-                <Trash2 :size="16" />
-              </button>
+
+              <!-- Footer row -->
+              <div class="inst-footer">
+                <button class="footer-btn history-btn" @click="router.push(`/garden/${uPlant.id}`)">
+                  <History :size="13" />
+                  История грядки
+                </button>
+                <button class="footer-btn delete-inst-btn" @click="emit('delete-instance', uPlant.id)">
+                  <Trash2 :size="13" />
+                  Удалить
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -192,16 +199,29 @@ function formatDateDisplay(d?: string | null): string {
 
 .group-instances-grid { display: flex; flex-direction: column; }
 .instance-card {
-  display: flex; padding: 16px; gap: 16px; border-bottom: 1px solid var(--color-border); cursor: pointer; transition: background 0.15s; position: relative;
+  display: flex; flex-direction: column; border-bottom: 1px solid var(--color-border);
   &:last-child { border-bottom: none; }
+}
+.inst-main {
+  display: flex; padding: 16px; gap: 16px; cursor: pointer; transition: background 0.15s;
   &:hover { background: var(--color-surface-hover); }
 }
 .inst-photo { width: 64px; height: 64px; border-radius: var(--radius-lg); background-size: cover; background-position: center; flex-shrink: 0; border: 1px solid var(--color-border); }
 .inst-icon-placeholder { width: 64px; height: 64px; border-radius: var(--radius-lg); background: rgba(45, 106, 79, 0.08); display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
 .inst-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .inst-head-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
-.inst-nickname { font-size: 16px; font-weight: 700; color: var(--color-text-primary); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 24px; }
-.delete-inst-btn { position: absolute; top: 16px; right: 16px; background: none; border: none; color: var(--color-text-tertiary); cursor: pointer; padding: 4px; transition: color 0.15s; &:hover { color: #E76F51; } }
+.inst-nickname { font-size: 16px; font-weight: 700; color: var(--color-text-primary); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.inst-footer {
+  display: flex; border-top: 1px solid var(--color-border);
+}
+.footer-btn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 10px 8px; background: none; border: none; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s;
+  &:not(:last-child) { border-right: 1px solid var(--color-border); }
+}
+.history-btn { color: var(--color-primary); &:hover { background: rgba(45,106,79,0.06); } }
+.delete-inst-btn { color: var(--color-text-tertiary); &:hover { background: rgba(231,111,81,0.06); color: #E76F51; } }
 
 .inst-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .tag-loc, .tag-date, .tag-empty { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }

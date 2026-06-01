@@ -92,6 +92,12 @@ const routes = [
         component: () => import('@/modules/help/views/ArticleView.vue')
     },
     {
+        path: '/garden/:userPlantId',
+        name: 'GardenTimeline',
+        component: () => import('@/views/GardenTimelineView.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
         path: '/subscription',
         name: 'Subscription',
         component: () => import('@/views/SubscriptionView.vue'),
