@@ -144,6 +144,7 @@ export const SocialService = {
       const { data, error } = await supabase
         .from('community_activities')
         .select('*')
+        .not('display_name', 'ilike', '%(Демо)%')
         .order('created_at', { ascending: false })
         .limit(count)
       

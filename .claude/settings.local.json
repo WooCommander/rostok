@@ -17,7 +17,8 @@
       "Bash(rm -rf \"C:\\Users\\User\\Documents\\projects\\rostok\\android\\app\\src\\androidTest\")",
       "Bash(rm -rf \"C:\\Users\\User\\Documents\\projects\\rostok\\android\\app\\src\\test\")",
       "Bash(rm -rf \"C:\\Users\\User\\Documents\\projects\\rostok\\docs\")",
-      "Bash(rg \"router-view\\|RouterView\" --type vue)"
+      "Bash(rg \"router-view\\|RouterView\" --type vue)",
+      "Bash(npm run build)"
     ]
   }
 }
