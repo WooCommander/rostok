@@ -6,6 +6,7 @@ import { useNotify } from '@/composables/useNotify'
 import MainLayout from '@/layouts/MainLayout.vue'
 import FpNotificationContainer from '@/design-system/components/FpNotificationContainer.vue'
 import AppUpdateProgressModal from '@/design-system/components/AppUpdateProgressModal.vue'
+import OnboardingModal from '@/modules/onboarding/OnboardingModal.vue'
 import { DeviceService } from '@/app/services/DeviceService'
 import { AppUpdateService, type AppUpdateMeta } from '@/app/services/AppUpdateService'
 import { changelog } from '@/data/changelog'
@@ -20,6 +21,8 @@ const { notify } = useNotify()
 const showUpdateModal = ref(false)
 const updateMeta = ref<AppUpdateMeta | null>(null)
 const currentVersion = changelog[0]?.version || '1.2.0'
+
+const showOnboarding = ref(!localStorage.getItem('rostok_onboarding_v1'))
 
 let backPressCount = 0
 let backPressTimeout: ReturnType<typeof setTimeout> | null = null
@@ -58,6 +61,8 @@ onMounted(async () => {
 <template>
   <MainLayout />
   <FpNotificationContainer />
+
+  <OnboardingModal v-if="showOnboarding" @done="showOnboarding = false" />
 
   <AppUpdateProgressModal
     v-if="updateMeta"
