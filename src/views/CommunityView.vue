@@ -1,14 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { ArrowLeft, Users, MapPin, Sparkles, MessageCircle, Send } from 'lucide-vue-next'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { ArrowLeft, Users, MapPin, Sparkles, MessageCircle, Send, Loader2 } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { SocialService, type SocialActivity, type SocialComment } from '@/modules/social/services/SocialService'
 import FpPullToRefresh from '@/design-system/components/FpPullToRefresh.vue'
 import FpBottomSheetModal from '@/shared/ui/FpBottomSheetModal.vue'
 
+const PAGE_SIZE = 15
+
 const router = useRouter()
 const activities = ref<SocialActivity[]>([])
 const loading = ref(true)
+const loadingMore = ref(false)
+const hasMore = ref(true)
+const sentinelRef = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
 
 // Модалка комментариев
 const selectedActivity = ref<SocialActivity | null>(null)
@@ -19,10 +25,12 @@ const sendingComment = ref(false)
 
 async function loadFeed(force = false) {
   loading.value = true
+  hasMore.value = true
   try {
-    activities.value = await SocialService.getFeed(15, force, (newData) => {
+    activities.value = await SocialService.getFeed(PAGE_SIZE, force, (newData) => {
       activities.value = newData
     })
+    hasMore.value = activities.value.length >= PAGE_SIZE
   } catch (err) {
     console.error('Failed to load social feed:', err)
   } finally {
@@ -30,9 +38,43 @@ async function loadFeed(force = false) {
   }
 }
 
+async function loadMore() {
+  if (loadingMore.value || !hasMore.value || activities.value.length === 0) return
+  loadingMore.value = true
+  try {
+    const cursor = activities.value[activities.value.length - 1].createdAt
+    const more = await SocialService.fetchMoreFeed(cursor, PAGE_SIZE)
+    if (more.length === 0) {
+      hasMore.value = false
+    } else {
+      activities.value.push(...more)
+      hasMore.value = more.length >= PAGE_SIZE
+    }
+  } finally {
+    loadingMore.value = false
+  }
+}
+
 onMounted(() => {
   loadFeed()
+
+  observer = new IntersectionObserver(
+    (entries) => { if (entries[0].isIntersecting) loadMore() },
+    { rootMargin: '200px' }
+  )
 })
+
+onUnmounted(() => {
+  observer?.disconnect()
+})
+
+// Подключаем observer когда sentinel появляется в DOM
+function onSentinelMounted(el: Element | null) {
+  if (el && observer) observer.observe(el)
+}
+function onSentinelUnmounted(el: Element | null) {
+  if (el && observer) observer.unobserve(el)
+}
 
 async function onRefresh(done: () => void) {
   await loadFeed(true)
@@ -161,7 +203,22 @@ async function sendComment() {
         <div v-if="activities.length === 0" class="feed-empty">
           <p>В вашем регионе пока нет активностей. Будьте первыми!</p>
         </div>
-        <div v-else class="feed-end">
+
+        <!-- Sentinel для IntersectionObserver -->
+        <div
+          v-if="hasMore"
+          :ref="(el) => { sentinelRef = el as HTMLElement; onSentinelMounted(el as Element) }"
+          @vue:unmounted="onSentinelUnmounted(sentinelRef)"
+          class="sentinel"
+        />
+
+        <!-- Индикатор загрузки следующей страницы -->
+        <div v-if="loadingMore" class="load-more-spinner">
+          <Loader2 :size="20" class="spin" />
+        </div>
+
+        <!-- Конец ленты -->
+        <div v-if="!hasMore && activities.length > 0" class="feed-end">
           <p>Вы досмотрели до конца ленты.</p>
         </div>
       </div>
@@ -548,4 +605,18 @@ async function sendComment() {
   color: var(--color-text-disabled);
   font-size: 14px;
 }
+
+.sentinel {
+  height: 1px;
+}
+
+.load-more-spinner {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+  color: var(--color-text-tertiary);
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.8s linear infinite; }
 </style>

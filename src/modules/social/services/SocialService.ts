@@ -11,6 +11,7 @@ export interface SocialActivity {
   likes: number
   commentsCount: number
   location: string
+  createdAt: string
   isReal?: boolean
   isLikedByMe?: boolean
 }
@@ -76,6 +77,7 @@ function mapRowToActivity(row: CommunityRow): SocialActivity {
     likes: row.likes_count || 0,
     commentsCount: row.comments_count || 0,
     location: row.city ? `г. ${row.city}` : (row.location_label || 'В вашем регионе'),
+    createdAt: row.created_at,
     isReal: true,
     isLikedByMe: row.is_liked_by_me || false
   }
@@ -135,6 +137,41 @@ export const SocialService = {
   /**
    * Приватный метод для реального запроса ленты с сервера
    */
+  async fetchMoreFeed(beforeCursor: string, count: number = 15): Promise<SocialActivity[]> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+
+      const { data, error } = await supabase
+        .from('community_activities')
+        .select('*')
+        .not('display_name', 'ilike', '%(Демо)%')
+        .lt('created_at', beforeCursor)
+        .order('created_at', { ascending: false })
+        .limit(count)
+
+      if (error || !data || data.length === 0) return []
+
+      if (user) {
+        const activityIds = data.map(d => d.id)
+        const { data: likesData } = await supabase
+          .from('community_likes')
+          .select('activity_id')
+          .eq('user_id', user.id)
+          .in('activity_id', activityIds)
+
+        const likedSet = new Set(likesData?.map(l => l.activity_id) || [])
+        return (data as CommunityRow[]).map(row => {
+          row.is_liked_by_me = likedSet.has(row.id)
+          return mapRowToActivity(row)
+        })
+      }
+
+      return (data as CommunityRow[]).map(mapRowToActivity)
+    } catch {
+      return []
+    }
+  },
+
   async fetchRealFeed(count: number): Promise<SocialActivity[]> {
     let realActivities: SocialActivity[] = []
     
