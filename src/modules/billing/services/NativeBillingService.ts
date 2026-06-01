@@ -21,14 +21,14 @@ export type NativePurchaseResult =
 
 export const NativeBillingService = {
   async configure(userId: string): Promise<void> {
-    const { Purchases } = await import('@revenuecat/purchases-capacitor')
+    const { Purchases } = await import(/* @vite-ignore */ '@revenuecat/purchases-capacitor')
     await Purchases.configure({ apiKey: REVENUECAT_API_KEY })
     await Purchases.logIn({ appUserID: userId })
   },
 
   async purchase(): Promise<NativePurchaseResult> {
     try {
-      const { Purchases } = await import('@revenuecat/purchases-capacitor')
+      const { Purchases } = await import(/* @vite-ignore */ '@revenuecat/purchases-capacitor')
       const offerings = await Purchases.getOfferings()
       const pkg = offerings.current?.monthly
 
@@ -54,7 +54,7 @@ export const NativeBillingService = {
 
   async restore(): Promise<NativePurchaseResult> {
     try {
-      const { Purchases } = await import('@revenuecat/purchases-capacitor')
+      const { Purchases } = await import(/* @vite-ignore */ '@revenuecat/purchases-capacitor')
       const info = await Purchases.restorePurchases()
       const entitlement = info.customerInfo.entitlements.active[ENTITLEMENT_ID]
 
@@ -72,7 +72,7 @@ export const NativeBillingService = {
 
   async getStatus(): Promise<{ isPremium: boolean; expiresAt?: string }> {
     try {
-      const { Purchases } = await import('@revenuecat/purchases-capacitor')
+      const { Purchases } = await import(/* @vite-ignore */ '@revenuecat/purchases-capacitor')
       const info = await Purchases.getCustomerInfo()
       const entitlement = info.customerInfo.entitlements.active[ENTITLEMENT_ID]
       if (!entitlement) return { isPremium: false }

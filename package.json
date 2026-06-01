@@ -26,6 +26,7 @@
     "@capacitor/ios": "^8.1.0",
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
+    "@revenuecat/purchases-capacitor": "^13.1.4",
     "@supabase/supabase-js": "^2.47.10",
     "@types/canvas-confetti": "^1.9.0",
     "canvas-confetti": "^1.9.4",

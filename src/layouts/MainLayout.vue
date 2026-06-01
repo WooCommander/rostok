@@ -6,7 +6,7 @@ import { authStore } from '@/modules/auth/store/authStore'
 import { changelog } from '@/data/changelog'
 import {
   Home, Leaf, User, ClipboardList, Menu, X,
-  LogOut, Sun, Moon, Plus, ArrowUp, ShieldAlert, Calculator, Info, Beaker, BookOpen
+  LogOut, Sun, Moon, Plus, ArrowUp, ShieldAlert, Calculator, Info, Beaker, BookOpen, Sparkles
 } from 'lucide-vue-next'
 import { FpHaptics } from '@/shared/lib/haptics'
 
@@ -250,6 +250,10 @@ const handleLogout = async () => {
             <a class="drawer-link" :class="{ active: currentPath.startsWith('/help') }"
               @click.prevent="navigate('/help')">
               <BookOpen :size="20" class="link-icon" /> База знаний
+            </a>
+            <a class="drawer-link premium-link" :class="{ active: currentPath === '/subscription' }"
+              @click.prevent="navigate('/subscription')">
+              <Sparkles :size="20" class="link-icon premium-icon" /> Premium
             </a>
             <a class="drawer-link" :class="{ active: currentPath === '/about' }" @click.prevent="navigate('/about')">
               <Info :size="20" class="link-icon" /> О приложении
@@ -612,6 +616,14 @@ const handleLogout = async () => {
   &.active {
     border-left-color: var(--color-primary);
   }
+}
+
+.premium-link {
+  .premium-icon { color: #FB8500; }
+  color: var(--color-text-primary);
+  font-weight: 600;
+  &.active { border-left-color: #FB8500; }
+  &:hover .premium-icon { color: #FB8500; }
 }
 
 .drawer-footer {

@@ -90,6 +90,12 @@ const routes = [
         path: '/help/:id',
         name: 'Article',
         component: () => import('@/modules/help/views/ArticleView.vue')
+    },
+    {
+        path: '/subscription',
+        name: 'Subscription',
+        component: () => import('@/views/SubscriptionView.vue'),
+        meta: { requiresAuth: true }
     }
 ]
 
