@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft, Plus, Camera, Droplets, Sprout,
-  Scissors, Bug, FlaskConical, FileText, Image, Loader2
+  Scissors, FlaskConical, FileText, Loader2
 } from 'lucide-vue-next'
 import { PlantService, type UserPlant } from '@/modules/plants/services/PlantService'
 import { JournalService, type TreatmentEntry } from '@/modules/journal/services/JournalService'
