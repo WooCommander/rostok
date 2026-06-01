@@ -1,13 +1,31 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { Plus, Sprout, Trash2, ChevronLeft, ChevronRight, Search, SlidersHorizontal, RotateCcw } from 'lucide-vue-next'
+import { Plus, Sprout, Trash2, ChevronLeft, ChevronRight, Search, SlidersHorizontal, RotateCcw, Download, FileText, Table2 } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { JournalService, type TreatmentEntry } from '@/modules/journal/services/JournalService'
+import { exportCSV, exportPDF } from '@/modules/journal/services/JournalExportService'
 import FpConfirmationModal from '@/design-system/components/FpConfirmationModal.vue'
 
 const router = useRouter()
 const entries = ref<TreatmentEntry[]>([])
 const loading = ref(true)
+const showExportMenu = ref(false)
+const exporting = ref(false)
+
+async function doExportCSV() {
+  exporting.value = true
+  showExportMenu.value = false
+  try {
+    await exportCSV(filteredEntries.value)
+  } finally {
+    exporting.value = false
+  }
+}
+
+function doExportPDF() {
+  showExportMenu.value = false
+  exportPDF(filteredEntries.value)
+}
 
 const isConfirmVisible = ref(false)
 const confirmEntryId = ref<string | null>(null)
@@ -183,11 +201,41 @@ onUnmounted(() => {
 
 <template>
   <div class="journal-view">
+    <!-- Оверлей для закрытия меню экспорта -->
+    <div v-if="showExportMenu" class="export-overlay" @click="showExportMenu = false" />
+
     <div class="page-header">
       <h1 class="header-title">Журнал</h1>
-      <button class="add-btn" @click="router.push('/journal/add')">
-        <Plus :size="18" /> Добавить
-      </button>
+      <div class="header-actions">
+        <!-- Экспорт -->
+        <div v-if="!loading && filteredEntries.length > 0" class="export-wrap">
+          <button class="export-btn" @click="showExportMenu = !showExportMenu" :disabled="exporting" title="Экспорт">
+            <Download :size="16" />
+          </button>
+          <Transition name="dropdown">
+            <div v-if="showExportMenu" class="export-menu">
+              <div class="export-menu-title">Экспортировать {{ filteredEntries.length }} записей</div>
+              <button class="export-option" @click="doExportCSV">
+                <Table2 :size="16" class="opt-icon csv" />
+                <div>
+                  <div class="opt-label">CSV для Excel</div>
+                  <div class="opt-desc">Открыть в таблицах</div>
+                </div>
+              </button>
+              <button class="export-option" @click="doExportPDF">
+                <FileText :size="16" class="opt-icon pdf" />
+                <div>
+                  <div class="opt-label">PDF / Печать</div>
+                  <div class="opt-desc">Сохранить или распечатать</div>
+                </div>
+              </button>
+            </div>
+          </Transition>
+        </div>
+        <button class="add-btn" @click="router.push('/journal/add')">
+          <Plus :size="18" /> Добавить
+        </button>
+      </div>
     </div>
 
     <!-- Строка поиска и кнопка фильтров -->
@@ -508,4 +556,52 @@ onUnmounted(() => {
 
 .filters-slide-enter-active, .filters-slide-leave-active { transition: all 0.25s ease-out; }
 .filters-slide-enter-from, .filters-slide-leave-to { opacity: 0; transform: translateY(-10px); }
+
+/* ── EXPORT ── */
+.export-overlay {
+  position: fixed; inset: 0; z-index: 99;
+}
+.header-actions {
+  display: flex; align-items: center; gap: 8px;
+}
+.export-wrap {
+  position: relative;
+}
+.export-btn {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); color: var(--color-text-secondary);
+  cursor: pointer; transition: all 0.15s;
+  &:hover { border-color: var(--color-primary); color: var(--color-primary); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+.export-menu {
+  position: absolute; top: calc(100% + 6px); right: 0;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-md);
+  min-width: 220px; z-index: 100; overflow: hidden;
+}
+.export-menu-title {
+  padding: 10px 14px 8px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--color-text-tertiary);
+  border-bottom: 1px solid var(--color-border);
+}
+.export-option {
+  width: 100%; display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; background: none; border: none;
+  cursor: pointer; transition: background 0.15s; text-align: left;
+  &:hover { background: var(--color-surface-hover); }
+}
+.opt-icon {
+  flex-shrink: 0;
+  &.csv { color: #16a34a; }
+  &.pdf { color: #dc2626; }
+}
+.opt-label { font-size: 14px; font-weight: 600; color: var(--color-text-primary); }
+.opt-desc  { font-size: 11px; color: var(--color-text-tertiary); margin-top: 1px; }
+
+.dropdown-enter-active, .dropdown-leave-active { transition: opacity 0.15s, transform 0.15s; }
+.dropdown-enter-from, .dropdown-leave-to { opacity: 0; transform: translateY(-4px); }
 </style>
