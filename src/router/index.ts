@@ -92,6 +92,12 @@ const routes = [
         component: () => import('@/modules/help/views/ArticleView.vue')
     },
     {
+        path: '/map',
+        name: 'Map',
+        component: () => import('@/views/MapView.vue'),
+        meta: { requiresAuth: true }
+    },
+    {
         path: '/garden/:userPlantId',
         name: 'GardenTimeline',
         component: () => import('@/views/GardenTimelineView.vue'),

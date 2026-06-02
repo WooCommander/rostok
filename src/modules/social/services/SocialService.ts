@@ -12,6 +12,8 @@ export interface SocialActivity {
   commentsCount: number
   location: string
   createdAt: string
+  lat?: number | null
+  lng?: number | null
   isReal?: boolean
   isLikedByMe?: boolean
 }
@@ -37,6 +39,8 @@ interface CommunityRow {
   likes_count: number
   comments_count: number
   created_at: string
+  lat?: number | null
+  lng?: number | null
   is_liked_by_me?: boolean
 }
 
@@ -78,6 +82,8 @@ function mapRowToActivity(row: CommunityRow): SocialActivity {
     commentsCount: row.comments_count || 0,
     location: row.city ? `г. ${row.city}` : (row.location_label || 'В вашем регионе'),
     createdAt: row.created_at,
+    lat: row.lat ?? null,
+    lng: row.lng ?? null,
     isReal: true,
     isLikedByMe: row.is_liked_by_me || false
   }
@@ -254,16 +260,26 @@ export const SocialService = {
       if (!city) {
         try {
           const res = await fetch('https://ipapi.co/json/')
-          const data = await res.json()
-          city = data.city || ''
+          const geoData = await res.json()
+          city = geoData.city || ''
         } catch (_) { /* без города тоже можно */ }
       }
-      
+
+      // Получаем координаты (округляем до ~1км для приватности)
+      let lat: number | null = null
+      let lng: number | null = null
+      try {
+        const { Geolocation } = await import('@capacitor/geolocation')
+        const pos = await Geolocation.getCurrentPosition({ timeout: 5000, enableHighAccuracy: false })
+        lat = Math.round(pos.coords.latitude * 100) / 100
+        lng = Math.round(pos.coords.longitude * 100) / 100
+      } catch (_) { /* без координат тоже публикуем */ }
+
       // Формируем display name из email
       const displayName = user.is_anonymous
         ? 'Огородник (Демо)'
         : (user.email?.split('@')[0] || 'Огородник')
-      
+
       await supabase
         .from('community_activities')
         .insert({
@@ -273,7 +289,9 @@ export const SocialService = {
           plant_name: params.plantName,
           plant_emoji: params.plantEmoji || '🌱',
           city: city || null,
-          location_label: params.locationLabel || null
+          location_label: params.locationLabel || null,
+          lat,
+          lng
         })
         
       // Сбрасываем кэш, чтобы при следующем открытии ленты загрузилась новая запись
@@ -282,6 +300,30 @@ export const SocialService = {
     } catch (err) {
       // Не блокируем основной flow при ошибках публикации
       console.warn('Не удалось опубликовать в сообщество:', err)
+    }
+  },
+
+  /**
+   * Получить активности с координатами для отображения на карте.
+   * Возвращает записи за последние 30 дней с lat/lng.
+   */
+  async getMapActivities(limit = 200): Promise<SocialActivity[]> {
+    try {
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      const { data, error } = await supabase
+        .from('community_activities')
+        .select('*')
+        .not('display_name', 'ilike', '%(Демо)%')
+        .not('lat', 'is', null)
+        .not('lng', 'is', null)
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      if (error || !data) return []
+      return (data as CommunityRow[]).map(mapRowToActivity)
+    } catch {
+      return []
     }
   },
 

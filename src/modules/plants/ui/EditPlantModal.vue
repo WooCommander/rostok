@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Camera, UploadCloud, Trash2, Plus, History } from 'lucide-vue-next'
 import FpButton from '@/design-system/components/FpButton.vue'
@@ -37,6 +37,14 @@ const form = ref({
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const uploadingPhoto = ref(false)
 const showDeleteConfirm = ref(false)
+
+watch(() => props.modelValue, (open) => {
+  document.body.style.overflow = open ? 'hidden' : ''
+})
+
+onUnmounted(() => {
+  document.body.style.overflow = ''
+})
 
 watch(() => props.plantData, (newVal) => {
   if (newVal) {
@@ -90,6 +98,7 @@ function handleDelete() {
 </script>
 
 <template>
+  <Teleport to="body">
   <div v-if="modelValue && plantData" class="modal-backdrop" @click="close">
     <div class="modal-box" @click.stop>
       <div class="modal-header">
@@ -144,6 +153,7 @@ function handleDelete() {
       </div>
     </div>
   </div>
+  </Teleport>
 
   <ConfirmDialog v-model="showDeleteConfirm" title="Удаление грядки"
     message="Вы уверены, что хотите удалить эту грядку/культуру из вашего огорода? Вся связанная с ней история и записи будут удалены."

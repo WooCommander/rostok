@@ -20,7 +20,8 @@
       "Bash(rg \"router-view\\|RouterView\" --type vue)",
       "Bash(npm run build)",
       "Bash(node -e \"const p=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\);console.log\\(Object.keys\\({...p.dependencies,...p.devDependencies}\\).filter\\(k=>k.includes\\('leaflet'\\)\\).join\\(', '\\)||'not found'\\)\")",
-      "Bash(npm list *)"
+      "Bash(npm list *)",
+      "Bash(npm install *)"
     ]
   }
 }
