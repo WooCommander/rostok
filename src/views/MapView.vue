@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft, Sparkles, Loader2, Users } from 'lucide-vue-next'
 import { supabase } from '@/api/supabase'
@@ -147,6 +147,9 @@ async function initMap() {
 
   markerCount.value = count
   loading.value = false
+
+  await nextTick()
+  mapInstance?.invalidateSize()
 }
 </script>
 

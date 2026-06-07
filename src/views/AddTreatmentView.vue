@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { ArrowLeft, Check, ChevronDown, X } from 'lucide-vue-next'
+import { ArrowLeft, Check, ChevronDown, X, CheckCircle, AlertTriangle, XCircle } from 'lucide-vue-next'
 import { useRouter, useRoute } from 'vue-router'
 import FpMobilePicker from '@/design-system/components/FpMobilePicker.vue'
 import { PlantService, type Plant, type UserPlant } from '@/modules/plants/services/PlantService'
@@ -9,6 +9,7 @@ import { WeatherService, type DailyForecast } from '@/modules/weather/services/W
 
 import { ReminderService } from '@/modules/reminders'
 import { ProductService, type ProductItem } from '@/modules/products/services/ProductService'
+import { TankMixerService, type MixCheckResult } from '@/modules/tank-mixer'
 import { PushNotificationService } from '@/modules/notifications'
 
 const router = useRouter()
@@ -22,6 +23,32 @@ const otherPlants = computed(() => {
   return plants.value.filter(p => !myPlantIds.has(p.id))
 })
 const saving = ref(false)
+
+const isTankMix = ref(false)
+const tankMixProducts = ref(['', '', ''])
+
+const tankMixFullProducts = computed<ProductItem[]>(() => {
+  return tankMixProducts.value
+    .filter(name => name.trim())
+    .map(name => allProducts.value.find(p => p.name === name) || null)
+    .filter(Boolean) as ProductItem[]
+})
+
+const tankMixCompatibility = computed<MixCheckResult | null>(() => {
+  if (tankMixFullProducts.value.length < 2) return null
+  return TankMixerService.checkMultipleCompatibility(tankMixFullProducts.value)
+})
+
+function toggleTankMix() {
+  isTankMix.value = !isTankMix.value
+  if (isTankMix.value && form.value.product) {
+    tankMixProducts.value[0] = form.value.product
+    form.value.product = ''
+  } else if (!isTankMix.value) {
+    form.value.product = tankMixProducts.value[0] || ''
+    tankMixProducts.value = ['', '', '']
+  }
+}
 
 const isEditing = computed(() => !!route.params.id)
 const allProducts = ref<ProductItem[]>([])
@@ -168,6 +195,13 @@ onMounted(async () => {
   if (route.query.dose) form.value.dose = String(route.query.dose)
   if (route.query.note) form.value.note = String(route.query.note)
   if (route.query.selected_id) form.value.selected_ids = [String(route.query.selected_id)]
+  if (route.query.tank_products) {
+    const parts = String(route.query.tank_products).split('|').filter(Boolean)
+    if (parts.length > 0) {
+      isTankMix.value = true
+      tankMixProducts.value = [parts[0] || '', parts[1] || '', parts[2] || '']
+    }
+  }
 
 
   try {
@@ -244,13 +278,17 @@ async function save() {
     }
   })
 
+  const finalProduct = isTankMix.value
+    ? tankMixProducts.value.filter(p => p.trim()).join(' + ') || undefined
+    : form.value.product || undefined
+
   const newEntry: NewTreatmentEntry = {
     plant_id: treatedPlants[0]?.id.startsWith('p_') ? treatedPlants[0].id.slice(2) : null,
     user_plant_id: treatedPlants[0]?.id.startsWith('u_') ? treatedPlants[0].id.slice(2) : null,
     plants_data: treatedPlants,
     treated_at: form.value.date,
     care_type: form.value.type,
-    product: form.value.product || undefined,
+    product: finalProduct,
     dose: form.value.dose || undefined,
     temperature: form.value.temp ? parseFloat(form.value.temp) : null,
     notes: form.value.note || undefined
@@ -330,8 +368,15 @@ async function save() {
       </div>
 
       <div class="field" v-if="form.type !== 'watering' && form.type !== 'pruning'">
-        <label class="field-label">Препарат / удобрение</label>
+        <div class="field-label-row">
+          <label class="field-label">Препарат / удобрение</label>
+          <button class="tank-mix-toggle" :class="{ active: isTankMix }" @click="toggleTankMix">
+            🧪 Баковая смесь
+          </button>
+        </div>
+
         <FpMobilePicker
+          v-if="!isTankMix"
           v-model="form.product"
           :items="productItems"
           placeholder="Поиск или ввод нового..."
@@ -341,9 +386,55 @@ async function save() {
           variant="bordered"
           @create="form.product = $event"
         />
+
+        <template v-else>
+          <div class="tank-mix-fields">
+            <FpMobilePicker
+              v-model="tankMixProducts[0]"
+              :items="productItems"
+              placeholder="Препарат 1..."
+              allow-create
+              create-label="Добавить новый:"
+              title="Препарат 1"
+              variant="bordered"
+              @create="v => tankMixProducts[0] = v"
+            />
+            <FpMobilePicker
+              v-model="tankMixProducts[1]"
+              :items="productItems"
+              placeholder="Препарат 2..."
+              allow-create
+              create-label="Добавить новый:"
+              title="Препарат 2"
+              variant="bordered"
+              @create="v => tankMixProducts[1] = v"
+            />
+            <FpMobilePicker
+              v-model="tankMixProducts[2]"
+              :items="productItems"
+              placeholder="Препарат 3 (необязательно)..."
+              allow-create
+              create-label="Добавить новый:"
+              title="Препарат 3"
+              variant="bordered"
+              @create="v => tankMixProducts[2] = v"
+            />
+          </div>
+
+          <Transition name="fade">
+            <div v-if="tankMixCompatibility" class="mix-compat-badge" :class="tankMixCompatibility.result.toLowerCase()">
+              <span class="mix-compat-icon">
+                <CheckCircle v-if="tankMixCompatibility.result === 'COMPATIBLE'" :size="15" />
+                <AlertTriangle v-else-if="tankMixCompatibility.result === 'CAUTION'" :size="15" />
+                <XCircle v-else :size="15" />
+              </span>
+              <span class="mix-compat-text">{{ tankMixCompatibility.message }}</span>
+            </div>
+          </Transition>
+        </template>
       </div>
 
-      <div class="field" v-if="form.product">
+      <div class="field" v-if="isTankMix ? tankMixProducts.some(p => p.trim()) : form.product">
         <label class="field-label">Доза</label>
         <input v-model="form.dose" type="text" class="field-input" placeholder="10 мл на 10 л воды..." />
       </div>
@@ -575,4 +666,36 @@ async function save() {
 
 .picker-fade-enter-active, .picker-fade-leave-active { transition: transform 0.3s ease, opacity 0.3s ease; }
 .picker-fade-enter-from, .picker-fade-leave-to { transform: translateY(100%); opacity: 0; }
+
+.field-label-row {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
+  .field-label { margin-bottom: 0; }
+}
+
+.tank-mix-toggle {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 600; padding: 4px 10px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-pill);
+  background: var(--color-surface); color: var(--color-text-secondary);
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  &:hover { border-color: var(--color-primary); color: var(--color-primary); }
+  &.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
+}
+
+.tank-mix-fields {
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+.mix-compat-badge {
+  margin-top: 8px; padding: 10px 12px; border-radius: var(--radius-md);
+  display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; line-height: 1.45;
+  &.compatible { background: rgba(46,204,113,0.1); border-left: 3px solid #2ecc71; color: #27ae60; }
+  &.incompatible { background: rgba(231,76,60,0.1); border-left: 3px solid #e74c3c; color: #c0392b; }
+  &.caution { background: rgba(241,196,15,0.1); border-left: 3px solid #f1c40f; color: #d35400; }
+  .mix-compat-icon { flex-shrink: 0; margin-top: 1px; }
+  .mix-compat-text { flex: 1; }
+}
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s, transform 0.2s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; transform: translateY(-4px); }
 </style>

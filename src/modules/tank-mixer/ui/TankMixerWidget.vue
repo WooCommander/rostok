@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ProductItem } from '@/modules/products'
 import { TankMixerService, type MixCheckResult, type PopularMix } from '../services/tankMixerService'
-import { Beaker, AlertTriangle, CheckCircle, XCircle } from 'lucide-vue-next'
+import { Beaker, AlertTriangle, CheckCircle, XCircle, BookOpen } from 'lucide-vue-next'
 import FpMobilePicker from '@/design-system/components/FpMobilePicker.vue'
 import FpSpinner from '@/design-system/components/FpSpinner.vue'
 import FpButton from '@/design-system/components/FpButton.vue'
@@ -11,6 +12,8 @@ import SuggestMixModal from './SuggestMixModal.vue'
 const props = defineProps<{
   products: ProductItem[]
 }>()
+
+const router = useRouter()
 
 const selectedProduct1 = ref<ProductItem | null>(null)
 const selectedProduct2 = ref<ProductItem | null>(null)
@@ -83,6 +86,14 @@ function reset() {
   selectedProduct1.value = null
   selectedProduct2.value = null
   selectedProduct3.value = null
+}
+
+function logToJournal() {
+  const names = [selectedProduct1.value, selectedProduct2.value, selectedProduct3.value]
+    .filter(Boolean)
+    .map(p => p!.name)
+  const tank = encodeURIComponent(names.join('|'))
+  router.push(`/journal/add?care_type=spraying&tank_products=${tank}`)
 }
 </script>
 
@@ -187,7 +198,17 @@ function reset() {
           </h3>
           <p>{{ result.message }}</p>
         </div>
-        <button class="reset-btn" @click="reset">Очистить</button>
+        <div class="result-actions">
+          <button class="reset-btn" @click="reset">Очистить</button>
+          <button
+            v-if="result.result !== 'INCOMPATIBLE'"
+            class="log-btn"
+            @click="logToJournal"
+          >
+            <BookOpen :size="14" />
+            В журнал
+          </button>
+        </div>
       </div>
     </Transition>
 
@@ -421,6 +442,17 @@ function reset() {
   }
 }
 
+.result-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+
+  @media (min-width: 640px) {
+    align-items: flex-end;
+  }
+}
+
 .reset-btn {
   padding: 8px 16px;
   background: var(--color-surface);
@@ -435,6 +467,16 @@ function reset() {
     background: var(--color-surface-hover);
     color: var(--color-text-primary);
   }
+}
+
+.log-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 16px;
+  background: var(--color-primary); color: white;
+  border: none; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: opacity 0.15s;
+  &:hover { opacity: 0.85; }
 }
 
 .fade-enter-active,
